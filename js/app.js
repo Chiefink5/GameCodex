@@ -31,8 +31,6 @@
   };
 
   let state = loadState();
-  if (!state.games.length) seedDemoGames();
-  applyStoredTheme();
 
   const els = {
     sidebar: q('#sidebar'),
@@ -81,6 +79,9 @@
     bgColorInput: q('#bgColorInput'),
     resetThemeBtn: q('#resetThemeBtn')
   };
+
+  if (!state.games.length) seedDemoGames();
+  applyStoredTheme();
 
   let currentView = { type: 'home' };
   let searchQuery = '';
