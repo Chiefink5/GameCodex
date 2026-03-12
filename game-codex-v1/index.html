@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#18141f" />
+  <title>Game Codex</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div id="app" class="app-shell">
+    <aside id="sidebar" class="sidebar closed">
+      <div class="sidebar-header">
+        <div>
+          <div class="eyebrow">Royal Archive</div>
+          <h1>Game Codex</h1>
+        </div>
+        <button id="closeSidebarBtn" class="icon-btn" aria-label="Close menu">✕</button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-link active" data-view="home">🏠 Home</button>
+        <button class="nav-link" data-view="favorites">⭐ Favorites</button>
+      </nav>
+
+      <div class="sidebar-section">
+        <div class="section-title">Categories</div>
+        <div id="categoryNav"></div>
+      </div>
+
+      <div class="sidebar-footer">
+        <button id="openThemeBtn" class="secondary-btn">🎨 Theme</button>
+        <button id="resetDataBtn" class="danger-btn">Reset Demo Data</button>
+      </div>
+    </aside>
+
+    <div id="overlay" class="overlay hidden"></div>
+
+    <main class="main-content">
+      <header class="topbar">
+        <div class="topbar-left">
+          <button id="openSidebarBtn" class="icon-btn" aria-label="Open menu">☰</button>
+          <div>
+            <div class="eyebrow">Personal Gaming Archive</div>
+            <h2 id="viewTitle">Game Codex</h2>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <button id="addGameBtn" class="primary-btn">+ Add Game</button>
+        </div>
+      </header>
+
+      <section id="homeView" class="view"></section>
+      <section id="categoryView" class="view hidden"></section>
+      <section id="gameView" class="view hidden"></section>
+      <section id="favoritesView" class="view hidden"></section>
+    </main>
+  </div>
+
+  <dialog id="gameModal" class="modal">
+    <form method="dialog" id="gameForm" class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow">New Entry</div>
+          <h3>Add Game</h3>
+        </div>
+        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+      </div>
+
+      <label>
+        <span>Game title</span>
+        <input id="gameTitleInput" name="title" type="text" placeholder="Satisfactory" required />
+      </label>
+
+      <label>
+        <span>Category</span>
+        <select id="gameCategorySelect" name="categoryId" required></select>
+      </label>
+
+      <label>
+        <span>Template</span>
+        <select id="gameTemplateSelect" name="templateId" required></select>
+      </label>
+
+      <label>
+        <span>Status</span>
+        <select id="gameStatusSelect" name="status">
+          <option value="active">Active</option>
+          <option value="paused">Paused</option>
+          <option value="completed">Completed</option>
+          <option value="researching">Researching</option>
+          <option value="wishlist">Wishlist</option>
+        </select>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" id="cancelGameModalBtn" class="secondary-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Create Game</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="moduleEntryModal" class="modal">
+    <form method="dialog" id="moduleEntryForm" class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow">Codex Entry</div>
+          <h3 id="entryModalTitle">Add Entry</h3>
+        </div>
+        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+      </div>
+
+      <input type="hidden" id="entryModuleId" />
+      <input type="hidden" id="entryModuleType" />
+
+      <label>
+        <span>Title</span>
+        <input id="entryTitleInput" type="text" placeholder="Automate reinforced plates" required />
+      </label>
+
+      <label id="entryContentWrap">
+        <span>Content</span>
+        <textarea id="entryContentInput" rows="5" placeholder="Drop the useful stuff here."></textarea>
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" id="cancelEntryModalBtn" class="secondary-btn">Cancel</button>
+        <button type="submit" class="primary-btn">Save Entry</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="themeModal" class="modal">
+    <form method="dialog" id="themeForm" class="modal-card">
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow">Theme Control</div>
+          <h3>Royal Theme</h3>
+        </div>
+        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+      </div>
+
+      <label>
+        <span>Gold Accent</span>
+        <input id="goldColorInput" type="color" value="#d4af37" />
+      </label>
+      <label>
+        <span>Purple Accent</span>
+        <input id="purpleColorInput" type="color" value="#3d2d63" />
+      </label>
+      <label>
+        <span>Background</span>
+        <input id="bgColorInput" type="color" value="#0f0c14" />
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" id="resetThemeBtn" class="secondary-btn">Reset Theme</button>
+        <button type="submit" class="primary-btn">Apply Theme</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="js/templates.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
