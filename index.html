@@ -31,6 +31,11 @@
 
       <div class="sidebar-footer">
         <button id="openThemeBtn" class="secondary-btn">🎨 Theme</button>
+        <button id="exportDataBtn" class="secondary-btn">📦 Export Backup</button>
+        <label class="secondary-btn import-btn">
+          📥 Import Backup
+          <input id="importDataInput" type="file" accept="application/json" hidden />
+        </label>
         <button id="resetDataBtn" class="danger-btn">Reset Demo Data</button>
       </div>
     </aside>
@@ -47,6 +52,9 @@
           </div>
         </div>
         <div class="topbar-right">
+          <div class="search-wrap">
+            <input id="globalSearchInput" type="search" placeholder="Search games, modules, notes..." />
+          </div>
           <button id="addGameBtn" class="primary-btn">+ Add Game</button>
         </div>
       </header>
@@ -58,7 +66,7 @@
     </main>
   </div>
 
-  <dialog id="gameModal" class="modal">
+  <dialog id="gameModal" class="modal modal-wide">
     <form method="dialog" id="gameForm" class="modal-card">
       <div class="modal-header">
         <div>
@@ -68,31 +76,60 @@
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </div>
 
-      <label>
-        <span>Game title</span>
-        <input id="gameTitleInput" name="title" type="text" placeholder="Satisfactory" required />
-      </label>
+      <div class="form-grid cols-2">
+        <label>
+          <span>Game title</span>
+          <input id="gameTitleInput" name="title" type="text" placeholder="Satisfactory" required />
+        </label>
 
-      <label>
-        <span>Category</span>
-        <select id="gameCategorySelect" name="categoryId" required></select>
-      </label>
+        <label>
+          <span>Status</span>
+          <select id="gameStatusSelect" name="status">
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="completed">Completed</option>
+            <option value="researching">Researching</option>
+            <option value="wishlist">Wishlist</option>
+          </select>
+        </label>
+      </div>
 
-      <label>
-        <span>Template</span>
-        <select id="gameTemplateSelect" name="templateId" required></select>
-      </label>
+      <div class="form-grid cols-2">
+        <label>
+          <span>Category</span>
+          <select id="gameCategorySelect" name="categoryId" required></select>
+        </label>
 
-      <label>
-        <span>Status</span>
-        <select id="gameStatusSelect" name="status">
-          <option value="active">Active</option>
-          <option value="paused">Paused</option>
-          <option value="completed">Completed</option>
-          <option value="researching">Researching</option>
-          <option value="wishlist">Wishlist</option>
-        </select>
-      </label>
+        <label>
+          <span>Template</span>
+          <select id="gameTemplateSelect" name="templateId" required></select>
+        </label>
+      </div>
+
+      <div class="steam-box">
+        <div class="row-between steam-head">
+          <div>
+            <div class="eyebrow">Steam Grab</div>
+            <h4>Banner + cover assist</h4>
+          </div>
+          <button type="button" id="steamSearchBtn" class="secondary-btn">🔎 Find on Steam</button>
+        </div>
+
+        <div class="form-grid cols-2">
+          <label>
+            <span>Steam App ID (optional)</span>
+            <input id="steamAppIdInput" type="text" placeholder="526870" />
+          </label>
+
+          <label>
+            <span>Custom banner URL (optional)</span>
+            <input id="customBannerInput" type="url" placeholder="https://..." />
+          </label>
+        </div>
+
+        <div id="steamStatus" class="subtext">Use the search button or paste an App ID. If Steam lookup fails, the game still creates normally.</div>
+        <div id="steamResults" class="steam-results"></div>
+      </div>
 
       <div class="modal-actions">
         <button type="button" id="cancelGameModalBtn" class="secondary-btn">Cancel</button>
@@ -111,6 +148,8 @@
         <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
       </div>
 
+      <input type="hidden" id="entryModeInput" value="create" />
+      <input type="hidden" id="entryEditId" />
       <input type="hidden" id="entryModuleId" />
       <input type="hidden" id="entryModuleType" />
 

@@ -66,5 +66,20 @@ window.GAME_CODEX_TEMPLATES = {
       'Main Goals': ['Define build direction', 'Track important quests', 'List important upgrades'],
       'Secrets / Discoveries': [{ title: 'Missables', content: 'Track anything easy to miss here.' }]
     }
+  },
+  lifeSim: {
+    id: 'lifeSim',
+    name: 'Life Sim / Business',
+    categoryFit: 'Big Ambitions, TCG Card Shop Sim, Drug Dealer Sim',
+    modules: [
+      { type: 'checklist', title: 'Business Goals', icon: '✔' },
+      { type: 'resource', title: 'Inventory / Resources', icon: '📦' },
+      { type: 'notes', title: 'Profit Notes', icon: '💰' },
+      { type: 'locations', title: 'Key Locations', icon: '📍' },
+      { type: 'notes', title: 'Routine Tweaks', icon: '🧠' }
+    ],
+    starterEntries: {
+      'Business Goals': ['Stabilize income', 'Track profitable items', 'Plan next upgrade']
+    }
   }
 };

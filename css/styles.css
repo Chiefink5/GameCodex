@@ -26,9 +26,11 @@ input, select, textarea {
   border-radius: 12px;
   padding: 12px 14px;
 }
+input::placeholder, textarea::placeholder { color: #9588a5; }
 textarea { resize: vertical; }
 label { display: grid; gap: 8px; margin-bottom: 14px; }
 label span { color: var(--muted); font-size: 0.92rem; }
+a { color: inherit; }
 
 .app-shell { display: flex; min-height: 100vh; }
 .sidebar {
@@ -52,7 +54,9 @@ label span { color: var(--muted); font-size: 0.92rem; }
 .modal-header,
 .module-head,
 .game-header,
-.row-between {
+.row-between,
+.entry-actions,
+.steam-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -90,8 +94,12 @@ label span { color: var(--muted); font-size: 0.92rem; }
   background: rgba(15, 12, 20, 0.82);
   backdrop-filter: blur(10px);
   padding: 8px 0 16px;
+  flex-wrap: wrap;
 }
 .topbar-left { display: flex; align-items: center; gap: 12px; }
+.topbar-right { display: flex; align-items: center; gap: 12px; flex: 1; justify-content: flex-end; flex-wrap: wrap; }
+.search-wrap { width: min(420px, 100%); }
+.search-wrap input { background: rgba(18,15,24,0.96); }
 .view { display: grid; gap: 18px; padding-bottom: 40px; }
 .hidden { display: none !important; }
 
@@ -102,17 +110,16 @@ label span { color: var(--muted); font-size: 0.92rem; }
   box-shadow: var(--shadow);
 }
 .card, .category-card, .module-card, .game-card { padding: 18px; }
-.recent-list, .category-grid, .module-grid, .favorites-grid {
+.recent-list, .category-grid, .module-grid, .favorites-grid, .search-results-grid, .steam-results {
   display: grid;
   gap: 14px;
 }
-.recent-list { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); }
+.recent-list, .favorites-grid, .search-results-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 .category-grid { grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
 .module-grid { grid-template-columns: 1fr; }
-.favorites-grid { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
 
 .section-block { display: grid; gap: 14px; }
-.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .section-head h3 { font-size: 1.3rem; }
 .recent-card, .game-card { padding: 18px; }
 .recent-card h4, .game-card h4, .category-card h4, .module-card h4 { margin-bottom: 8px; }
@@ -129,7 +136,7 @@ label span { color: var(--muted); font-size: 0.92rem; }
   border: 1px solid rgba(212, 175, 55, 0.2);
 }
 .game-banner {
-  height: 120px;
+  height: 160px;
   border-radius: 16px;
   background: linear-gradient(135deg, rgba(61,45,99,0.8), rgba(212,175,55,0.22));
   border: 1px solid rgba(212,175,55,0.18);
@@ -139,7 +146,22 @@ label span { color: var(--muted); font-size: 0.92rem; }
   color: var(--gold);
   font-family: Georgia, serif;
   font-size: 1.2rem;
+  background-size: cover;
+  background-position: center;
+  overflow: hidden;
 }
+.game-banner.has-image {
+  align-items: end;
+  justify-items: start;
+  padding: 16px;
+}
+.game-banner .banner-fade {
+  width: 100%;
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(10,8,14,0.1), rgba(10,8,14,0.7));
+}
+.steam-meta { display: flex; flex-wrap: wrap; gap: 10px; }
 .module-card { display: grid; gap: 12px; }
 .entry-list { display: grid; gap: 10px; }
 .entry-item {
@@ -150,6 +172,10 @@ label span { color: var(--muted); font-size: 0.92rem; }
 }
 .entry-item.check-item { display: flex; align-items: center; gap: 10px; }
 .entry-item.check-item input { width: auto; }
+.entry-item.is-complete span,
+.entry-item.is-complete strong { text-decoration: line-through; opacity: 0.65; }
+.entry-actions { margin-top: 10px; justify-content: flex-end; }
+.entry-actions .ghost-btn { padding: 6px 0; }
 
 .icon-btn, .primary-btn, .secondary-btn, .danger-btn, .ghost-btn {
   border-radius: 12px;
@@ -180,6 +206,7 @@ label span { color: var(--muted); font-size: 0.92rem; }
   color: var(--gold);
   padding: 0;
 }
+.import-btn { display: flex; align-items: center; justify-content: center; cursor: pointer; }
 
 .overlay {
   position: fixed;
@@ -193,6 +220,7 @@ label span { color: var(--muted); font-size: 0.92rem; }
   background: transparent;
   width: min(94vw, 560px);
 }
+.modal-wide { width: min(96vw, 760px); }
 .modal::backdrop { background: rgba(0,0,0,0.62); }
 .modal-card {
   background: linear-gradient(180deg, rgba(34,28,45,0.98), rgba(18,15,24,0.98));
@@ -206,7 +234,30 @@ label span { color: var(--muted); font-size: 0.92rem; }
   justify-content: flex-end;
   gap: 10px;
   margin-top: 10px;
+  flex-wrap: wrap;
 }
+.form-grid { display: grid; gap: 12px; }
+.form-grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.steam-box {
+  border: 1px solid rgba(212,175,55,0.18);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(212,175,55,0.05);
+  margin-bottom: 12px;
+}
+.steam-results { margin-top: 14px; }
+.steam-card {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 12px;
+  align-items: center;
+  background: rgba(10, 8, 14, 0.56);
+  border: 1px solid rgba(212,175,55,0.12);
+  border-radius: 14px;
+  padding: 10px;
+}
+.steam-card img { width: 120px; height: 45px; object-fit: cover; border-radius: 8px; }
+.steam-card.selected { border-color: rgba(212,175,55,0.55); box-shadow: 0 0 0 1px rgba(212,175,55,0.2) inset; }
 
 .empty-state {
   padding: 28px;
@@ -214,6 +265,13 @@ label span { color: var(--muted); font-size: 0.92rem; }
   border: 1px dashed rgba(212,175,55,0.24);
   border-radius: var(--radius);
   color: var(--muted);
+}
+.tiny { font-size: 0.82rem; }
+
+@media (max-width: 760px) {
+  .form-grid.cols-2, .steam-card { grid-template-columns: 1fr; }
+  .topbar-right { width: 100%; justify-content: stretch; }
+  .search-wrap { width: 100%; }
 }
 
 @media (min-width: 980px) {
