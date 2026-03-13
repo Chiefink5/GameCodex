@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#18141f" />
-  <title>Game Codex</title>
+  <meta name="theme-color" content="#120f18" />
+  <title>Game Codex v4</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
-  <div id="app" class="app-shell">
+  <div class="app-shell">
     <aside id="sidebar" class="sidebar closed">
-      <div class="sidebar-header">
+      <div class="sidebar-head">
         <div>
           <div class="eyebrow">Royal Archive</div>
           <h1>Game Codex</h1>
@@ -19,42 +19,42 @@
         <button id="closeSidebarBtn" class="icon-btn" aria-label="Close menu">✕</button>
       </div>
 
-      <nav class="sidebar-nav">
-        <button class="nav-link active" data-view="home">🏠 Home</button>
-        <button class="nav-link" data-view="favorites">⭐ Favorites</button>
+      <nav class="sidebar-nav sidebar-list">
+        <button class="nav-btn active" data-nav-view="home">🏠 Home</button>
+        <button class="nav-btn" data-nav-view="favorites">⭐ Favorites</button>
+        <button class="nav-btn" data-nav-view="templates">🧩 Templates</button>
       </nav>
 
-      <div class="sidebar-section">
-        <div class="section-title">Categories</div>
-        <div id="categoryNav"></div>
-      </div>
+      <section class="sidebar-section">
+        <div class="section-label">Categories</div>
+        <div id="sidebarCategories" class="sidebar-list"></div>
+      </section>
 
-      <div class="sidebar-footer">
-        <button id="openThemeBtn" class="secondary-btn">🎨 Theme</button>
-        <button id="exportDataBtn" class="secondary-btn">📦 Export Backup</button>
-        <label class="secondary-btn import-btn">
-          📥 Import Backup
-          <input id="importDataInput" type="file" accept="application/json" hidden />
-        </label>
-        <button id="resetDataBtn" class="danger-btn">Reset Demo Data</button>
-      </div>
+      <section class="sidebar-section">
+        <div class="section-label">Tools</div>
+        <div class="sidebar-list">
+          <button id="openTemplateBtn" class="nav-btn">🧩 New Template</button>
+          <button id="openThemeBtn" class="nav-btn">🎨 Theme</button>
+          <button id="exportBtn" class="nav-btn">📦 Export Backup</button>
+          <label class="nav-btn file-label">📥 Import Backup<input id="importInput" type="file" accept="application/json" hidden /></label>
+          <button id="resetBtn" class="nav-btn danger">🧨 Reset Demo Data</button>
+        </div>
+      </section>
     </aside>
 
     <div id="overlay" class="overlay hidden"></div>
 
-    <main class="main-content">
+    <main class="main">
       <header class="topbar">
         <div class="topbar-left">
           <button id="openSidebarBtn" class="icon-btn" aria-label="Open menu">☰</button>
           <div>
-            <div class="eyebrow">Personal Gaming Archive</div>
+            <div class="eyebrow">Personal gaming archive</div>
             <h2 id="viewTitle">Game Codex</h2>
           </div>
         </div>
         <div class="topbar-right">
-          <div class="search-wrap">
-            <input id="globalSearchInput" type="search" placeholder="Search games, modules, notes..." />
-          </div>
+          <label class="search-wrap"><input id="searchInput" type="search" placeholder="Search games, modules, notes..." /></label>
           <button id="addGameBtn" class="primary-btn">+ Add Game</button>
         </div>
       </header>
@@ -63,140 +63,94 @@
       <section id="categoryView" class="view hidden"></section>
       <section id="gameView" class="view hidden"></section>
       <section id="favoritesView" class="view hidden"></section>
+      <section id="templatesView" class="view hidden"></section>
     </main>
   </div>
 
-  <dialog id="gameModal" class="modal modal-wide">
-    <form method="dialog" id="gameForm" class="modal-card">
-      <div class="modal-header">
-        <div>
-          <div class="eyebrow">New Entry</div>
-          <h3>Add Game</h3>
-        </div>
-        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+  <dialog id="gameModal" class="modal">
+    <form id="gameForm" class="modal-card">
+      <div class="modal-head">
+        <div><div class="eyebrow">Game Setup</div><h3 id="gameModalTitle">Add Game</h3></div>
+        <button type="button" class="icon-btn" data-close-dialog="gameModal">✕</button>
       </div>
-
-      <div class="form-grid cols-2">
-        <label>
-          <span>Game title</span>
-          <input id="gameTitleInput" name="title" type="text" placeholder="Satisfactory" required />
-        </label>
-
-        <label>
-          <span>Status</span>
-          <select id="gameStatusSelect" name="status">
-            <option value="active">Active</option>
-            <option value="paused">Paused</option>
-            <option value="completed">Completed</option>
-            <option value="researching">Researching</option>
-            <option value="wishlist">Wishlist</option>
-          </select>
-        </label>
+      <input id="gameEditId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Game title</span><input id="gameTitleInput" type="text" required /></label>
+        <label><span>Status</span><select id="gameStatusSelect"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="researching">Researching</option><option value="wishlist">Wishlist</option></select></label>
       </div>
-
-      <div class="form-grid cols-2">
-        <label>
-          <span>Category</span>
-          <select id="gameCategorySelect" name="categoryId" required></select>
-        </label>
-
-        <label>
-          <span>Template</span>
-          <select id="gameTemplateSelect" name="templateId" required></select>
-        </label>
+      <div class="form-grid two">
+        <label><span>Category</span><select id="gameCategorySelect"></select></label>
+        <label><span>Template</span><select id="gameTemplateSelect"></select></label>
       </div>
-
-      <div class="steam-box">
-        <div class="row-between steam-head">
-          <div>
-            <div class="eyebrow">Steam Grab</div>
-            <h4>Banner + cover assist</h4>
-          </div>
-          <button type="button" id="steamSearchBtn" class="secondary-btn">🔎 Find on Steam</button>
-        </div>
-
-        <div class="form-grid cols-2">
-          <label>
-            <span>Steam App ID (optional)</span>
-            <input id="steamAppIdInput" type="text" placeholder="526870" />
-          </label>
-
-          <label>
-            <span>Custom banner URL (optional)</span>
-            <input id="customBannerInput" type="url" placeholder="https://..." />
-          </label>
-        </div>
-
-        <div id="steamStatus" class="subtext">Use the search button or paste an App ID. If Steam lookup fails, the game still creates normally.</div>
-        <div id="steamResults" class="steam-results"></div>
+      <div class="form-grid two">
+        <label><span>Optional Steam App ID</span><input id="steamAppIdInput" type="text" placeholder="526870" /></label>
+        <label><span>Optional banner URL</span><input id="bannerUrlInput" type="url" placeholder="https://..." /></label>
       </div>
-
-      <div class="modal-actions">
-        <button type="button" id="cancelGameModalBtn" class="secondary-btn">Cancel</button>
-        <button type="submit" class="primary-btn">Create Game</button>
-      </div>
+      <label><span>Or upload banner image</span><input id="bannerFileInput" type="file" accept="image/*" /></label>
+      <div class="helper-text">You can use a Steam App ID, a banner URL, or your own uploaded image. Manual add stays king.</div>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="gameModal">Cancel</button><button type="submit" class="primary-btn">Save Game</button></div>
     </form>
   </dialog>
 
-  <dialog id="moduleEntryModal" class="modal">
-    <form method="dialog" id="moduleEntryForm" class="modal-card">
-      <div class="modal-header">
-        <div>
-          <div class="eyebrow">Codex Entry</div>
-          <h3 id="entryModalTitle">Add Entry</h3>
-        </div>
-        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+  <dialog id="moduleModal" class="modal">
+    <form id="moduleForm" class="modal-card">
+      <div class="modal-head">
+        <div><div class="eyebrow">Module Control</div><h3 id="moduleModalTitle">Add Module</h3></div>
+        <button type="button" class="icon-btn" data-close-dialog="moduleModal">✕</button>
       </div>
-
-      <input type="hidden" id="entryModeInput" value="create" />
-      <input type="hidden" id="entryEditId" />
-      <input type="hidden" id="entryModuleId" />
-      <input type="hidden" id="entryModuleType" />
-
-      <label>
-        <span>Title</span>
-        <input id="entryTitleInput" type="text" placeholder="Automate reinforced plates" required />
-      </label>
-
-      <label id="entryContentWrap">
-        <span>Content</span>
-        <textarea id="entryContentInput" rows="5" placeholder="Drop the useful stuff here."></textarea>
-      </label>
-
-      <div class="modal-actions">
-        <button type="button" id="cancelEntryModalBtn" class="secondary-btn">Cancel</button>
-        <button type="submit" class="primary-btn">Save Entry</button>
+      <input id="moduleEditId" type="hidden" />
+      <input id="moduleGameId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Module type</span><select id="moduleTypeSelect"><option value="notes">Notes</option><option value="checklist">Checklist</option><option value="resource">Resource Tracker</option><option value="production">Production Tracker</option><option value="locations">Locations</option></select></label>
+        <label><span>Icon</span><input id="moduleIconInput" type="text" maxlength="4" placeholder="📜" /></label>
       </div>
+      <label><span>Module title</span><input id="moduleTitleInput" type="text" required /></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="moduleModal">Cancel</button><button type="submit" class="primary-btn">Save Module</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="entryModal" class="modal">
+    <form id="entryForm" class="modal-card">
+      <div class="modal-head">
+        <div><div class="eyebrow">Entry</div><h3 id="entryModalTitle">Add Entry</h3></div>
+        <button type="button" class="icon-btn" data-close-dialog="entryModal">✕</button>
+      </div>
+      <input id="entryEditId" type="hidden" />
+      <input id="entryModuleId" type="hidden" />
+      <input id="entryModuleType" type="hidden" />
+      <label><span>Title</span><input id="entryTitleInput" type="text" required /></label>
+      <label><span>Details</span><textarea id="entryContentInput" rows="5" placeholder="Ratios, routes, warnings, coordinates, whatever matters..."></textarea></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="entryModal">Cancel</button><button type="submit" class="primary-btn">Save Entry</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="templateModal" class="modal">
+    <form id="templateForm" class="modal-card">
+      <div class="modal-head">
+        <div><div class="eyebrow">Template Forge</div><h3 id="templateModalTitle">Create Template</h3></div>
+        <button type="button" class="icon-btn" data-close-dialog="templateModal">✕</button>
+      </div>
+      <input id="templateEditId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Template name</span><input id="templateNameInput" type="text" required /></label>
+        <label><span>Base from</span><select id="templateBaseSelect"></select></label>
+      </div>
+      <label><span>Description</span><input id="templateDescriptionInput" type="text" placeholder="Built for Satisfactory megafactory planning" /></label>
+      <label><span>Starter modules</span><div id="templateModuleBuilder" class="builder-list"></div></label>
+      <div class="inline-actions"><button type="button" id="addTemplateModuleBtn" class="secondary-btn">+ Add Template Module</button></div>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="templateModal">Cancel</button><button type="submit" class="primary-btn">Save Template</button></div>
     </form>
   </dialog>
 
   <dialog id="themeModal" class="modal">
-    <form method="dialog" id="themeForm" class="modal-card">
-      <div class="modal-header">
-        <div>
-          <div class="eyebrow">Theme Control</div>
-          <h3>Royal Theme</h3>
-        </div>
-        <button class="icon-btn" value="cancel" aria-label="Close">✕</button>
+    <form id="themeForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Visual Tuning</div><h3>Theme</h3></div><button type="button" class="icon-btn" data-close-dialog="themeModal">✕</button></div>
+      <div class="form-grid two">
+        <label><span>Gold Accent</span><input id="goldInput" type="color" value="#d4af37" /></label>
+        <label><span>Purple Accent</span><input id="purpleInput" type="color" value="#3d2d63" /></label>
       </div>
-
-      <label>
-        <span>Gold Accent</span>
-        <input id="goldColorInput" type="color" value="#d4af37" />
-      </label>
-      <label>
-        <span>Purple Accent</span>
-        <input id="purpleColorInput" type="color" value="#3d2d63" />
-      </label>
-      <label>
-        <span>Background</span>
-        <input id="bgColorInput" type="color" value="#0f0c14" />
-      </label>
-
-      <div class="modal-actions">
-        <button type="button" id="resetThemeBtn" class="secondary-btn">Reset Theme</button>
-        <button type="submit" class="primary-btn">Apply Theme</button>
-      </div>
+      <label><span>Background Tone</span><input id="bgInput" type="color" value="#0f0c14" /></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="themeModal">Cancel</button><button type="submit" class="primary-btn">Apply Theme</button></div>
     </form>
   </dialog>
 

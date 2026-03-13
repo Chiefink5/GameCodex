@@ -1,10 +1,9 @@
 {
   "name": "Game Codex",
   "short_name": "Codex",
-  "start_url": ".",
+  "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#0f0c14",
-  "theme_color": "#18141f",
-  "description": "A royal-styled modular game tracker and personal gaming archive.",
+  "theme_color": "#120f18",
   "icons": []
 }

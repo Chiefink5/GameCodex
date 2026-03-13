@@ -1,22 +1,34 @@
 (() => {
-  const STORAGE_KEY = 'game_codex_v2';
-  const LEGACY_STORAGE_KEY = 'game_codex_v1';
-  const THEME_KEY = 'game_codex_theme_v2';
-  const LEGACY_THEME_KEY = 'game_codex_theme_v1';
-  const templates = window.GAME_CODEX_TEMPLATES;
-  const STEAM_SEARCH_URL = 'https://store.steampowered.com/api/storesearch/';
-  const STEAM_APPDETAILS_URL = 'https://store.steampowered.com/api/appdetails';
-  const STEAM_ASSET_BASE = 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps';
+  const STORAGE_KEY = 'game_codex_v4';
+  const THEME_KEY = 'game_codex_theme_v4';
+  const defaultTemplates = window.GAME_CODEX_DEFAULT_TEMPLATES;
+  const defaultTheme = { gold: '#d4af37', purple: '#3d2d63', bg: '#0f0c14' };
 
   const starterState = {
     categories: [
-      { id: 'cat_sandbox', name: 'Sandbox / Creative', icon: '🧱' },
-      { id: 'cat_automation', name: 'Automation / Factory', icon: '⚙️' },
-      { id: 'cat_life', name: 'Life Sim / Business', icon: '🏙️' },
-      { id: 'cat_rpg', name: 'Open World RPG', icon: '🗡️' },
-      { id: 'cat_survival', name: 'Survival / Exploration', icon: '🔥' },
-      { id: 'cat_sim', name: 'Simulation / Systems', icon: '🖥️' },
-      { id: 'cat_odd', name: 'Experimental / Oddball', icon: '🧪' }
+      { id: 'cat_sandbox', name: 'Sandbox / Creative', icon: '🧱', defaultTemplateId: 'sandbox' },
+      { id: 'cat_automation', name: 'Automation / Factory', icon: '⚙️', defaultTemplateId: 'automation' },
+      { id: 'cat_life', name: 'Life Sim / Business', icon: '🏙️', defaultTemplateId: 'lifeSim' },
+      { id: 'cat_rpg', name: 'Open World RPG', icon: '🗡️', defaultTemplateId: 'openWorldRpg' },
+      { id: 'cat_survival', name: 'Survival / Exploration', icon: '🔥', defaultTemplateId: 'survival' },
+      { id: 'cat_sim', name: 'Simulation / Systems', icon: '🖥️', defaultTemplateId: 'blank' },
+      { id: 'cat_odd', name: 'Experimental / Oddball', icon: '🧪', defaultTemplateId: 'blank' }
+    ],
+    templates: [
+      {
+        id: 'tpl_sat_run',
+        name: 'Satisfactory Run',
+        description: 'Factory-first layout with one extra expansion module.',
+        system: false,
+        modules: [
+          { type: 'checklist', title: 'Factory Goals', icon: '✔' },
+          { type: 'resource', title: 'Resource Tracker', icon: '📦' },
+          { type: 'production', title: 'Production Tracker', icon: '⚙️' },
+          { type: 'notes', title: 'Expansion Plans', icon: '🗺️' },
+          { type: 'notes', title: 'Bottlenecks / Problems', icon: '⚠️' },
+          { type: 'locations', title: 'Locations', icon: '📍' }
+        ]
+      }
     ],
     games: [],
     modules: [],
@@ -25,1003 +37,630 @@
     favoriteGameIds: []
   };
 
-  const steamState = {
-    selected: null,
-    results: []
-  };
-
   let state = loadState();
-
-  const els = {
-    sidebar: q('#sidebar'),
-    overlay: q('#overlay'),
-    openSidebarBtn: q('#openSidebarBtn'),
-    closeSidebarBtn: q('#closeSidebarBtn'),
-    addGameBtn: q('#addGameBtn'),
-    openThemeBtn: q('#openThemeBtn'),
-    exportDataBtn: q('#exportDataBtn'),
-    importDataInput: q('#importDataInput'),
-    resetDataBtn: q('#resetDataBtn'),
-    viewTitle: q('#viewTitle'),
-    categoryNav: q('#categoryNav'),
-    globalSearchInput: q('#globalSearchInput'),
-    homeView: q('#homeView'),
-    categoryView: q('#categoryView'),
-    gameView: q('#gameView'),
-    favoritesView: q('#favoritesView'),
-    gameModal: q('#gameModal'),
-    gameForm: q('#gameForm'),
-    gameCategorySelect: q('#gameCategorySelect'),
-    gameTemplateSelect: q('#gameTemplateSelect'),
-    cancelGameModalBtn: q('#cancelGameModalBtn'),
-    gameTitleInput: q('#gameTitleInput'),
-    gameStatusSelect: q('#gameStatusSelect'),
-    steamSearchBtn: q('#steamSearchBtn'),
-    steamAppIdInput: q('#steamAppIdInput'),
-    customBannerInput: q('#customBannerInput'),
-    steamStatus: q('#steamStatus'),
-    steamResults: q('#steamResults'),
-    moduleEntryModal: q('#moduleEntryModal'),
-    moduleEntryForm: q('#moduleEntryForm'),
-    entryModeInput: q('#entryModeInput'),
-    entryEditId: q('#entryEditId'),
-    entryModuleId: q('#entryModuleId'),
-    entryModuleType: q('#entryModuleType'),
-    entryModalTitle: q('#entryModalTitle'),
-    entryTitleInput: q('#entryTitleInput'),
-    entryContentInput: q('#entryContentInput'),
-    entryContentWrap: q('#entryContentWrap'),
-    cancelEntryModalBtn: q('#cancelEntryModalBtn'),
-    themeModal: q('#themeModal'),
-    themeForm: q('#themeForm'),
-    goldColorInput: q('#goldColorInput'),
-    purpleColorInput: q('#purpleColorInput'),
-    bgColorInput: q('#bgColorInput'),
-    resetThemeBtn: q('#resetThemeBtn')
-  };
-
-  if (!state.games.length) seedDemoGames();
-  applyStoredTheme();
-
   let currentView = { type: 'home' };
   let searchQuery = '';
 
-  bindEvents();
-  renderAll();
+  const els = mapElements();
 
-  function bindEvents() {
-    els.openSidebarBtn?.addEventListener('click', openSidebar);
-    els.closeSidebarBtn?.addEventListener('click', closeSidebar);
-    els.overlay?.addEventListener('click', closeSidebar);
-    els.addGameBtn.addEventListener('click', openAddGameModal);
+  init();
+
+  function init() {
+    applyTheme(loadTheme());
+    wireEvents();
+    ensureDemoGames();
+    syncTemplateSelects();
+    syncCategorySelect();
+    render();
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
+    }
+  }
+
+  function mapElements() {
+    const q = (s) => document.querySelector(s);
+    return {
+      sidebar: q('#sidebar'), overlay: q('#overlay'), openSidebarBtn: q('#openSidebarBtn'), closeSidebarBtn: q('#closeSidebarBtn'),
+      sidebarCategories: q('#sidebarCategories'), viewTitle: q('#viewTitle'), searchInput: q('#searchInput'),
+      homeView: q('#homeView'), categoryView: q('#categoryView'), gameView: q('#gameView'), favoritesView: q('#favoritesView'), templatesView: q('#templatesView'),
+      addGameBtn: q('#addGameBtn'), exportBtn: q('#exportBtn'), importInput: q('#importInput'), resetBtn: q('#resetBtn'), openThemeBtn: q('#openThemeBtn'), openTemplateBtn: q('#openTemplateBtn'),
+      gameModal: q('#gameModal'), gameModalTitle: q('#gameModalTitle'), gameForm: q('#gameForm'), gameEditId: q('#gameEditId'), gameTitleInput: q('#gameTitleInput'), gameStatusSelect: q('#gameStatusSelect'), gameCategorySelect: q('#gameCategorySelect'), gameTemplateSelect: q('#gameTemplateSelect'), steamAppIdInput: q('#steamAppIdInput'), bannerUrlInput: q('#bannerUrlInput'), bannerFileInput: q('#bannerFileInput'),
+      moduleModal: q('#moduleModal'), moduleModalTitle: q('#moduleModalTitle'), moduleForm: q('#moduleForm'), moduleEditId: q('#moduleEditId'), moduleGameId: q('#moduleGameId'), moduleTypeSelect: q('#moduleTypeSelect'), moduleIconInput: q('#moduleIconInput'), moduleTitleInput: q('#moduleTitleInput'),
+      entryModal: q('#entryModal'), entryModalTitle: q('#entryModalTitle'), entryForm: q('#entryForm'), entryEditId: q('#entryEditId'), entryModuleId: q('#entryModuleId'), entryModuleType: q('#entryModuleType'), entryTitleInput: q('#entryTitleInput'), entryContentInput: q('#entryContentInput'),
+      templateModal: q('#templateModal'), templateModalTitle: q('#templateModalTitle'), templateForm: q('#templateForm'), templateEditId: q('#templateEditId'), templateNameInput: q('#templateNameInput'), templateDescriptionInput: q('#templateDescriptionInput'), templateBaseSelect: q('#templateBaseSelect'), templateModuleBuilder: q('#templateModuleBuilder'), addTemplateModuleBtn: q('#addTemplateModuleBtn'),
+      themeModal: q('#themeModal'), themeForm: q('#themeForm'), goldInput: q('#goldInput'), purpleInput: q('#purpleInput'), bgInput: q('#bgInput')
+    };
+  }
+
+  function wireEvents() {
+    els.openSidebarBtn.addEventListener('click', openSidebar);
+    els.closeSidebarBtn.addEventListener('click', closeSidebar);
+    els.overlay.addEventListener('click', closeSidebar);
+    document.querySelectorAll('[data-nav-view]').forEach(btn => btn.addEventListener('click', () => switchView({ type: btn.dataset.navView })));
+    document.querySelectorAll('[data-close-dialog]').forEach(btn => btn.addEventListener('click', () => closeDialog(btn.dataset.closeDialog)));
+
+    els.searchInput.addEventListener('input', e => { searchQuery = e.target.value.trim().toLowerCase(); render(); });
+    els.addGameBtn.addEventListener('click', () => openGameModal());
     els.openThemeBtn.addEventListener('click', () => els.themeModal.showModal());
-    els.exportDataBtn.addEventListener('click', exportBackup);
-    els.importDataInput.addEventListener('change', importBackup);
-    els.cancelGameModalBtn.addEventListener('click', () => els.gameModal.close());
-    els.cancelEntryModalBtn.addEventListener('click', () => els.moduleEntryModal.close());
-    els.resetDataBtn.addEventListener('click', resetData);
-    els.resetThemeBtn.addEventListener('click', resetTheme);
-    els.steamSearchBtn.addEventListener('click', findSteamMatch);
+    els.openTemplateBtn.addEventListener('click', () => openTemplateModal());
+    els.exportBtn.addEventListener('click', exportBackup);
+    els.importInput.addEventListener('change', importBackup);
+    els.resetBtn.addEventListener('click', () => { if (confirm('Reset back to clean demo data?')) { localStorage.removeItem(STORAGE_KEY); state = loadState(true); ensureDemoGames(); render(); } });
 
-    els.globalSearchInput.addEventListener('input', (e) => {
-      searchQuery = e.target.value.trim().toLowerCase();
-      renderAll();
+    els.gameCategorySelect.addEventListener('change', () => {
+      const cat = state.categories.find(c => c.id === els.gameCategorySelect.value);
+      if (cat && !els.gameEditId.value) els.gameTemplateSelect.value = cat.defaultTemplateId || 'blank';
     });
 
-    els.gameTitleInput.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && !e.shiftKey) return;
-    });
+    els.gameForm.addEventListener('submit', async (e) => { e.preventDefault(); await saveGameFromForm(); });
+    els.moduleForm.addEventListener('submit', (e) => { e.preventDefault(); saveModuleFromForm(); });
+    els.entryForm.addEventListener('submit', (e) => { e.preventDefault(); saveEntryFromForm(); });
+    els.themeForm.addEventListener('submit', (e) => { e.preventDefault(); saveTheme(); });
+    els.templateForm.addEventListener('submit', (e) => { e.preventDefault(); saveTemplateFromForm(); });
+    els.addTemplateModuleBtn.addEventListener('click', () => appendTemplateModuleRow());
 
-    document.addEventListener('click', handleDocumentClick);
-
-    els.gameForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      await createGameFromForm();
-    });
-
-    els.moduleEntryForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      saveModuleEntry();
-    });
-
-    els.themeForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      applyThemeFromForm();
-      els.themeModal.close();
-    });
+    document.addEventListener('click', handleActionClick);
   }
 
-  function handleDocumentClick(e) {
-    const target = e.target.closest('[data-action], [data-view], [data-category-id], [data-game-id], [data-module-id], [data-check-id], [data-entry-id], [data-steam-index]');
-    if (!target) return;
-
-    const { action, view, categoryId, gameId, moduleId, checkId, entryId, steamIndex } = target.dataset;
-
-    if (view) {
-      setView({ type: view });
-      closeSidebar();
-      return;
-    }
-
-    if (categoryId && !action) {
-      setView({ type: 'category', categoryId });
-      closeSidebar();
-      return;
-    }
-
-    if (gameId && !action) {
-      markRecent(gameId);
-      setView({ type: 'game', gameId });
-      closeSidebar();
-      return;
-    }
-
-    switch (action) {
-      case 'open-category':
-        setView({ type: 'category', categoryId });
-        break;
-      case 'favorite-game':
-        toggleFavorite(gameId);
-        break;
-      case 'add-entry':
-        openEntryModal(moduleId);
-        break;
-      case 'edit-entry':
-        openEntryModal(moduleId, entryId);
-        break;
-      case 'delete-entry':
-        deleteEntry(entryId);
-        break;
-      case 'delete-game':
-        deleteGame(gameId);
-        break;
-      case 'toggle-check':
-        toggleCheck(checkId);
-        break;
-      case 'steam-pick':
-        selectSteamResult(Number(steamIndex));
-        break;
-      default:
-        break;
-    }
+  function handleActionClick(e) {
+    const btn = e.target.closest('[data-action]');
+    if (!btn) return;
+    const { action, id, gameId, moduleId, entryId, templateId } = btn.dataset;
+    if (action === 'open-category') switchView({ type: 'category', id });
+    if (action === 'open-game') openGame(id);
+    if (action === 'toggle-favorite') toggleFavorite(id);
+    if (action === 'edit-game') openGameModal(id);
+    if (action === 'delete-game') deleteGame(id);
+    if (action === 'add-module') openModuleModal(gameId);
+    if (action === 'edit-module') openModuleModal(gameId, moduleId);
+    if (action === 'delete-module') deleteModule(moduleId);
+    if (action === 'move-module-up') moveModule(moduleId, -1);
+    if (action === 'move-module-down') moveModule(moduleId, 1);
+    if (action === 'add-entry') openEntryModal(moduleId);
+    if (action === 'edit-entry') openEntryModal(moduleId, entryId);
+    if (action === 'delete-entry') deleteEntry(entryId);
+    if (action === 'toggle-check') toggleChecklist(entryId);
+    if (action === 'edit-template') openTemplateModal(templateId);
+    if (action === 'delete-template') deleteTemplate(templateId);
+    if (action === 'clone-template') cloneTemplate(templateId);
+    if (action === 'use-template') openGameModal('', templateId);
   }
 
-  function setView(next) {
-    currentView = next;
-    renderAll();
+  function switchView(view) {
+    currentView = view;
+    closeSidebar();
+    render();
   }
 
-  function renderAll() {
-    renderSidebar();
+  function openSidebar() { els.sidebar.classList.remove('closed'); els.overlay.classList.remove('hidden'); }
+  function closeSidebar() { els.sidebar.classList.add('closed'); els.overlay.classList.add('hidden'); }
+  function closeDialog(id) { const el = document.getElementById(id); if (el?.open) el.close(); }
+
+  function render() {
+    renderSidebarCategories();
+    renderViews();
+    saveState();
+  }
+
+  function renderSidebarCategories() {
+    els.sidebarCategories.innerHTML = state.categories.map(cat => `<button class="nav-btn" data-action="open-category" data-id="${cat.id}">${cat.icon} ${escapeHtml(cat.name)}</button>`).join('');
+  }
+
+  function renderViews() {
+    hideAllViews();
+    highlightNav();
+    if (searchQuery) return renderSearch();
+    if (currentView.type === 'home') return renderHome();
+    if (currentView.type === 'favorites') return renderFavorites();
+    if (currentView.type === 'templates') return renderTemplates();
+    if (currentView.type === 'category') return renderCategory(currentView.id);
+    if (currentView.type === 'game') return renderGame(currentView.id);
     renderHome();
-    renderCategory();
-    renderGame();
-    renderFavorites();
-    updateViewVisibility();
   }
 
-  function updateViewVisibility() {
-    [els.homeView, els.categoryView, els.gameView, els.favoritesView].forEach(v => v.classList.add('hidden'));
-
-    if (currentView.type === 'home') {
-      els.viewTitle.textContent = searchQuery ? `Search: ${searchQuery}` : 'Game Codex';
-      els.homeView.classList.remove('hidden');
-    }
-    if (currentView.type === 'category') {
-      const category = state.categories.find(c => c.id === currentView.categoryId);
-      els.viewTitle.textContent = category?.name || 'Category';
-      els.categoryView.classList.remove('hidden');
-    }
-    if (currentView.type === 'game') {
-      const game = state.games.find(g => g.id === currentView.gameId);
-      els.viewTitle.textContent = game?.title || 'Game';
-      els.gameView.classList.remove('hidden');
-    }
-    if (currentView.type === 'favorites') {
-      els.viewTitle.textContent = 'Favorites';
-      els.favoritesView.classList.remove('hidden');
-    }
-
-    [...document.querySelectorAll('.nav-link')].forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.view === currentView.type);
-    });
-  }
-
-  function renderSidebar() {
-    els.categoryNav.innerHTML = state.categories.map(category => `
-      <button class="category-nav-link ${currentView.categoryId === category.id ? 'active' : ''}" data-category-id="${category.id}">
-        ${category.icon} ${category.name}
-      </button>
-    `).join('');
-
-    els.gameCategorySelect.innerHTML = state.categories.map(category => `
-      <option value="${category.id}">${category.name}</option>
-    `).join('');
-
-    els.gameTemplateSelect.innerHTML = Object.values(templates).map(template => `
-      <option value="${template.id}">${template.name}</option>
-    `).join('');
+  function hideAllViews() { [els.homeView, els.categoryView, els.gameView, els.favoritesView, els.templatesView].forEach(v => v.classList.add('hidden')); }
+  function highlightNav() {
+    document.querySelectorAll('[data-nav-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.navView === currentView.type));
   }
 
   function renderHome() {
-    const recentGames = state.recentGameIds.map(id => state.games.find(game => game.id === id)).filter(Boolean).slice(0, 3);
-
-    if (searchQuery) {
-      const results = findSearchResults(searchQuery);
-      els.homeView.innerHTML = `
-        <div class="section-block">
-          <div class="section-head">
-            <div>
-              <div class="eyebrow">Codex Sweep</div>
-              <h3>Search Results</h3>
-            </div>
-          </div>
-          ${results.length ? `
-            <div class="search-results-grid">
-              ${results.map(renderSearchCard).join('')}
-            </div>
-          ` : `<div class="empty-state">No matches. Try a game title, module name, or note text.</div>`}
-        </div>
-      `;
-      return;
-    }
-
+    els.viewTitle.textContent = 'Game Codex';
+    els.homeView.classList.remove('hidden');
+    const recent = state.recentGameIds.map(id => getGame(id)).filter(Boolean).slice(0, 3);
+    const kpis = [
+      ['Tracked Games', state.games.length],
+      ['Custom Templates', state.templates.filter(t => !t.system).length],
+      ['Favorites', state.favoriteGameIds.length],
+      ['Entries', state.entries.length]
+    ];
     els.homeView.innerHTML = `
-      <div class="section-block">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Quick Return</div>
-            <h3>Recently Viewed</h3>
-          </div>
-        </div>
-        ${recentGames.length ? `
-          <div class="recent-list">
-            ${recentGames.map(game => renderRecentCard(game)).join('')}
-          </div>
-        ` : `<div class="empty-state">No recent games yet. Open a game and it’ll live up here.</div>`}
-      </div>
-
-      <div class="section-block">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Archive Paths</div>
-            <h3>Categories</h3>
-          </div>
-        </div>
-        <div class="category-grid">
-          ${state.categories.map(category => {
-            const count = state.games.filter(game => game.categoryId === category.id).length;
-            return `
-              <button class="category-card" data-category-id="${category.id}">
-                <div class="row-between">
-                  <span class="badge">${category.icon} ${count} game${count === 1 ? '' : 's'}</span>
-                </div>
-                <h4>${category.name}</h4>
-                <div class="subtext">Open category archive</div>
-              </button>
-            `;
-          }).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderCategory() {
-    if (currentView.type !== 'category') {
-      els.categoryView.innerHTML = '';
-      return;
-    }
-
-    const category = state.categories.find(c => c.id === currentView.categoryId);
-    const games = state.games.filter(game => game.categoryId === category.id);
-
-    els.categoryView.innerHTML = `
-      <div class="section-block">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Category Archive</div>
-            <h3>${category.icon} ${category.name}</h3>
-          </div>
-          <button class="primary-btn" id="categoryAddGameBtn">+ Add Game</button>
-        </div>
-
-        ${games.length ? `
-          <div class="favorites-grid">
-            ${games.map(game => renderGameCard(game)).join('')}
-          </div>
-        ` : `<div class="empty-state">No games in this category yet. Add one and give it a template.</div>`}
-      </div>
-    `;
-
-    q('#categoryAddGameBtn')?.addEventListener('click', () => {
-      els.gameCategorySelect.value = category.id;
-      openAddGameModal();
-    });
-  }
-
-  function renderGame() {
-    if (currentView.type !== 'game') {
-      els.gameView.innerHTML = '';
-      return;
-    }
-
-    const game = state.games.find(g => g.id === currentView.gameId);
-    if (!game) return;
-
-    const category = state.categories.find(c => c.id === game.categoryId);
-    const modules = state.modules.filter(module => module.gameId === game.id).sort((a, b) => a.order - b.order);
-
-    els.gameView.innerHTML = `
-      <div class="game-card">
-        ${renderBanner(game)}
-        <div class="game-header">
-          <div>
-            <div class="eyebrow">Codex Page</div>
-            <h3>${game.title}</h3>
-          </div>
-          <div class="entry-actions">
-            <button class="secondary-btn" data-action="favorite-game" data-game-id="${game.id}">
-              ${isFavorite(game.id) ? '⭐ Favorited' : '☆ Favorite'}
-            </button>
-            <button class="danger-btn" data-action="delete-game" data-game-id="${game.id}">Delete Game</button>
-          </div>
-        </div>
-        <div class="row-between" style="margin-top: 12px; flex-wrap: wrap;">
-          <span class="badge">${category?.icon || '📁'} ${category?.name || 'Unsorted'}</span>
-          <span class="badge">Status: ${capitalize(game.status)}</span>
-          <span class="badge">Template: ${templates[game.templateId]?.name || 'Custom'}</span>
-        </div>
-        <div class="steam-meta" style="margin-top:12px;">
-          ${game.steamAppId ? `<span class="badge">Steam App ID: ${game.steamAppId}</span>` : ''}
-          ${game.steamStoreUrl ? `<a class="secondary-btn tiny" href="${escapeAttr(game.steamStoreUrl)}" target="_blank" rel="noopener noreferrer">Open Steam Page</a>` : ''}
-        </div>
-      </div>
-
-      <div class="section-block">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Modules</div>
-            <h3>Knowledge + Tracking</h3>
-          </div>
-        </div>
-        <div class="module-grid">
-          ${modules.map(module => renderModuleCard(module)).join('')}
-        </div>
-      </div>
-    `;
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Dashboard</div><h3>Royal command center</h3></div></div>
+        <div class="kpi-grid">${kpis.map(([l,v]) => `<div class="kpi"><div class="eyebrow">${l}</div><h3>${v}</h3></div>`).join('')}</div>
+      </section>
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Quick Access</div><h3>Recent 3</h3></div></div>
+        <div class="recent-grid">${recent.length ? recent.map(renderRecentCard).join('') : empty('Open some games and they show up here.')}</div>
+      </section>
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Categories</div><h3>Track what matters</h3></div></div>
+        <div class="categories-grid">${state.categories.map(renderCategoryCard).join('')}</div>
+      </section>
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Templates</div><h3>Launch faster</h3></div><button class="secondary-btn" data-action="use-template" data-template-id="blank">Use Blank</button></div>
+        <div class="templates-grid">${allTemplates().slice(0, 4).map(renderTemplateCard).join('')}</div>
+      </section>`;
   }
 
   function renderFavorites() {
-    const favorites = state.favoriteGameIds.map(id => state.games.find(game => game.id === id)).filter(Boolean);
-
-    els.favoritesView.innerHTML = `
-      <div class="section-block">
-        <div class="section-head">
-          <div>
-            <div class="eyebrow">Pinned Titles</div>
-            <h3>Favorites</h3>
-          </div>
-        </div>
-        ${favorites.length ? `
-          <div class="favorites-grid">
-            ${favorites.map(game => renderGameCard(game)).join('')}
-          </div>
-        ` : `<div class="empty-state">No favorites yet. Mark a game from its codex page.</div>`}
-      </div>
-    `;
+    els.viewTitle.textContent = 'Favorites';
+    els.favoritesView.classList.remove('hidden');
+    const games = state.favoriteGameIds.map(id => getGame(id)).filter(Boolean);
+    els.favoritesView.innerHTML = `<section class="section"><div class="section-head"><div><div class="eyebrow">Pinned</div><h3>Favorite games</h3></div></div><div class="favorites-grid">${games.length ? games.map(renderGameCard).join('') : empty('No favorites yet. Star the ones you actually care about.')}</div></section>`;
   }
 
-  function renderSearchCard(result) {
-    return `
-      <button class="game-card" data-game-id="${result.game.id}">
-        <div class="badge">${result.matchType}</div>
-        <h4>${result.game.title}</h4>
-        <div class="subtext">${result.preview}</div>
-      </button>
-    `;
+  function renderTemplates() {
+    els.viewTitle.textContent = 'Templates';
+    els.templatesView.classList.remove('hidden');
+    const templates = allTemplates();
+    els.templatesView.innerHTML = `
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Template Forge</div><h3>System + custom templates</h3></div><button class="primary-btn" id="inlineTemplateBtn">+ New Template</button></div>
+        <div class="templates-grid">${templates.map(renderTemplateCard).join('')}</div>
+      </section>`;
+    document.getElementById('inlineTemplateBtn').addEventListener('click', () => openTemplateModal());
+  }
+
+  function renderCategory(categoryId) {
+    const cat = state.categories.find(c => c.id === categoryId);
+    if (!cat) return renderHome();
+    els.viewTitle.textContent = cat.name;
+    els.categoryView.classList.remove('hidden');
+    const games = state.games.filter(g => g.categoryId === categoryId);
+    els.categoryView.innerHTML = `<section class="section"><div class="section-head"><div><div class="eyebrow">${cat.icon} Category</div><h3>${escapeHtml(cat.name)}</h3></div><button class="primary-btn" data-action="open-category" data-id="${categoryId}" disabled>${games.length} games</button></div><div class="section-grid">${games.length ? games.map(renderGameCard).join('') : empty('No games here yet. Add one and use the category default template.')}</div></section>`;
+  }
+
+  function renderGame(gameId) {
+    const game = getGame(gameId);
+    if (!game) return renderHome();
+    els.viewTitle.textContent = game.title;
+    els.gameView.classList.remove('hidden');
+    const category = state.categories.find(c => c.id === game.categoryId);
+    const modules = getModulesForGame(game.id);
+    els.gameView.innerHTML = `
+      <section class="section game-card">
+        <div class="game-banner ${game.banner ? '' : 'empty'}" style="${game.banner ? `background-image:url('${escapeAttribute(game.banner)}')` : ''}">
+          ${game.banner ? `<div class="banner-overlay"><div class="eyebrow">${escapeHtml(category?.name || 'Game')}</div><h3>${escapeHtml(game.title)}</h3></div>` : '<div>Upload a banner or use a Steam App ID</div>'}
+        </div>
+        <div class="split-row"><div><div class="eyebrow">${escapeHtml(category?.name || 'Unknown')}</div><h2>${escapeHtml(game.title)}</h2><div class="tag-row"><span class="chip">${escapeHtml(game.status)}</span>${game.steamAppId ? `<span class="chip">Steam ${escapeHtml(game.steamAppId)}</span>` : ''}${game.templateId ? `<span class="chip">${escapeHtml(getTemplate(game.templateId)?.name || 'Template')}</span>` : ''}</div></div><div class="inline-actions"><button class="icon-btn" data-action="toggle-favorite" data-id="${game.id}">${isFavorite(game.id) ? '★' : '☆'}</button><button class="secondary-btn" data-action="edit-game" data-id="${game.id}">Edit Game</button><button class="danger-btn" data-action="delete-game" data-id="${game.id}">Delete Game</button></div></div>
+      </section>
+      <section class="section">
+        <div class="section-head"><div><div class="eyebrow">Modules</div><h3>Game brain</h3></div><button class="primary-btn" data-action="add-module" data-game-id="${game.id}">+ Add Module</button></div>
+        <div class="module-stack">${modules.length ? modules.map(m => renderModuleCard(m, game.id)).join('') : empty('No modules yet. Add one or rebuild the game from a better template.')}</div>
+      </section>`;
+  }
+
+  function renderSearch() {
+    els.viewTitle.textContent = `Search: ${searchQuery}`;
+    els.homeView.classList.remove('hidden');
+    const matchedGames = state.games.filter(g => `${g.title} ${g.status}`.toLowerCase().includes(searchQuery));
+    const matchedModules = state.modules.filter(m => `${m.title} ${m.type}`.toLowerCase().includes(searchQuery));
+    const matchedEntries = state.entries.filter(en => `${en.title} ${en.content || ''}`.toLowerCase().includes(searchQuery));
+    els.homeView.innerHTML = `
+      <section class="section"><div class="section-head"><div><div class="eyebrow">Search Results</div><h3>${searchQuery}</h3></div></div>
+      <div class="search-grid">
+        ${matchedGames.map(g => `<div class="search-card"><div class="eyebrow">Game</div><h4>${escapeHtml(g.title)}</h4><div class="muted">${escapeHtml(g.status)}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${g.id}">Open</button></div></div>`).join('')}
+        ${matchedModules.map(m => `<div class="search-card"><div class="eyebrow">Module</div><h4>${escapeHtml(m.title)}</h4><div class="muted">${escapeHtml(getGame(m.gameId)?.title || '')}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${m.gameId}">Open Game</button></div></div>`).join('')}
+        ${matchedEntries.map(en => `<div class="search-card"><div class="eyebrow">Entry</div><h4>${escapeHtml(en.title)}</h4><div class="muted">${escapeHtml(getModule(en.moduleId)?.title || '')}</div><div class="tiny">${escapeHtml((en.content || '').slice(0, 120))}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${getModule(en.moduleId)?.gameId || ''}">Open Game</button></div></div>`).join('')}
+        ${(!matchedGames.length && !matchedModules.length && !matchedEntries.length) ? empty('Nothing matched. Your search may just suck, or the data is not there yet.') : ''}
+      </div></section>`;
   }
 
   function renderRecentCard(game) {
-    const category = state.categories.find(c => c.id === game.categoryId);
-    return `
-      <button class="recent-card" data-game-id="${game.id}">
-        <div class="badge">${category?.icon || '📁'} ${category?.name || 'Category'}</div>
-        <h4>${game.title}</h4>
-        <div class="subtext">Status: ${capitalize(game.status)}</div>
-      </button>
-    `;
+    return `<button class="recent-card" data-action="open-game" data-id="${game.id}"><div class="eyebrow">Recent</div><h4>${escapeHtml(game.title)}</h4><div class="muted">${escapeHtml(game.status)}</div></button>`;
   }
-
+  function renderCategoryCard(cat) {
+    const count = state.games.filter(g => g.categoryId === cat.id).length;
+    return `<button class="category-card" data-action="open-category" data-id="${cat.id}"><div class="eyebrow">${cat.icon} Category</div><h4>${escapeHtml(cat.name)}</h4><div class="muted">${count} tracked</div></button>`;
+  }
   function renderGameCard(game) {
     const category = state.categories.find(c => c.id === game.categoryId);
-    return `
-      <button class="game-card" data-game-id="${game.id}">
-        <div class="row-between">
-          <span class="badge">${category?.icon || '📁'} ${category?.name || 'Category'}</span>
-          <span>${isFavorite(game.id) ? '⭐' : ''}</span>
-        </div>
-        <h4>${game.title}</h4>
-        <div class="subtext">Status: ${capitalize(game.status)}</div>
-        ${game.steamAppId ? `<div class="subtext tiny">Steam-linked</div>` : ''}
-      </button>
-    `;
+    return `<div class="game-card"><div class="eyebrow">${escapeHtml(category?.name || '')}</div><h4>${escapeHtml(game.title)}</h4><div class="tag-row"><span class="chip">${escapeHtml(game.status)}</span>${isFavorite(game.id) ? '<span class="chip">favorite</span>' : ''}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${game.id}">Open</button><button class="icon-btn" data-action="toggle-favorite" data-id="${game.id}">${isFavorite(game.id) ? '★' : '☆'}</button></div></div>`;
+  }
+  function renderTemplateCard(template) {
+    return `<div class="template-card"><div class="eyebrow">${template.system ? 'System Template' : 'Custom Template'}</div><h4>${escapeHtml(template.name)}</h4><div class="muted">${escapeHtml(template.description || 'No description')}</div><div class="tag-row">${template.modules.slice(0,4).map(m => `<span class="chip">${escapeHtml(m.title)}</span>`).join('')}</div><div class="inline-actions"><button class="secondary-btn" data-action="use-template" data-template-id="${template.id}">Use</button><button class="secondary-btn" data-action="clone-template" data-template-id="${template.id}">Clone</button><button class="secondary-btn" data-action="edit-template" data-template-id="${template.id}">Edit</button>${template.system ? '' : `<button class="danger-btn" data-action="delete-template" data-template-id="${template.id}">Delete</button>`}</div></div>`;
   }
 
-  function renderModuleCard(module) {
-    const entries = state.entries.filter(entry => entry.moduleId === module.id);
-
-    return `
-      <div class="module-card">
-        <div class="module-head">
-          <div>
-            <div class="eyebrow">${module.type}</div>
-            <h4>${module.icon} ${module.title}</h4>
-          </div>
-          <button class="secondary-btn" data-action="add-entry" data-module-id="${module.id}">+ Add Entry</button>
-        </div>
-        ${entries.length ? `<div class="entry-list">${entries.map(entry => renderEntry(entry, module)).join('')}</div>` : `<div class="empty-state">Nothing here yet. Add the first entry.</div>`}
-      </div>
-    `;
+  function renderModuleCard(module, gameId) {
+    const entries = getEntriesForModule(module.id);
+    return `<div class="module-card"><div class="module-head"><div><div class="eyebrow">${escapeHtml(module.type)}</div><h4>${escapeHtml(module.icon || '📜')} ${escapeHtml(module.title)}</h4></div><div class="module-actions"><button class="secondary-btn" data-action="move-module-up" data-module-id="${module.id}">↑</button><button class="secondary-btn" data-action="move-module-down" data-module-id="${module.id}">↓</button><button class="secondary-btn" data-action="edit-module" data-game-id="${gameId}" data-module-id="${module.id}">Edit</button><button class="danger-btn" data-action="delete-module" data-module-id="${module.id}">Delete</button></div></div><div class="entry-list">${entries.length ? entries.map(en => renderEntry(module, en)).join('') : empty('No entries yet.')}</div><div class="inline-actions"><button class="primary-btn" data-action="add-entry" data-module-id="${module.id}">+ Add Entry</button></div></div>`;
   }
 
-  function renderEntry(entry, module) {
-    if (module.type === 'checklist') {
-      return `
-        <div class="entry-item ${entry.completed ? 'is-complete' : ''}">
-          <label class="check-item" style="display:flex;align-items:center;gap:10px;margin:0;">
-            <input type="checkbox" data-action="toggle-check" data-check-id="${entry.id}" ${entry.completed ? 'checked' : ''} />
-            <span>${escapeHtml(entry.title)}</span>
-          </label>
-          <div class="entry-actions">
-            <button class="ghost-btn" data-action="edit-entry" data-entry-id="${entry.id}" data-module-id="${module.id}">Edit</button>
-            <button class="ghost-btn" data-action="delete-entry" data-entry-id="${entry.id}">Delete</button>
-          </div>
-        </div>
-      `;
+  function renderEntry(module, entry) {
+    const check = module.type === 'checklist';
+    return `<div class="entry ${check ? 'check' : ''} ${entry.completed ? 'complete' : ''}">${check ? `<input type="checkbox" ${entry.completed ? 'checked' : ''} data-action="toggle-check" data-entry-id="${entry.id}" />` : ''}<div><strong>${escapeHtml(entry.title)}</strong>${entry.content ? `<div class="entry-copy">${escapeHtml(entry.content)}</div>` : ''}<div class="entry-actions"><button class="secondary-btn" data-action="edit-entry" data-module-id="${module.id}" data-entry-id="${entry.id}">Edit</button><button class="danger-btn" data-action="delete-entry" data-entry-id="${entry.id}">Delete</button></div></div></div>`;
+  }
+
+  function empty(text) { return `<div class="empty-state">${escapeHtml(text)}</div>`; }
+
+  function openGame(gameId) {
+    const game = getGame(gameId);
+    if (!game) return;
+    touchRecent(gameId);
+    currentView = { type: 'game', id: gameId };
+    render();
+  }
+
+  function touchRecent(gameId) {
+    state.recentGameIds = [gameId, ...state.recentGameIds.filter(id => id !== gameId)].slice(0,3);
+  }
+
+  function isFavorite(gameId) { return state.favoriteGameIds.includes(gameId); }
+  function toggleFavorite(gameId) {
+    state.favoriteGameIds = isFavorite(gameId) ? state.favoriteGameIds.filter(id => id !== gameId) : [gameId, ...state.favoriteGameIds];
+    render();
+  }
+
+  function openGameModal(gameId = '', forcedTemplateId = '') {
+    syncCategorySelect();
+    syncTemplateSelects();
+    els.gameForm.reset();
+    els.gameEditId.value = '';
+    els.bannerFileInput.value = '';
+    els.gameModalTitle.textContent = gameId ? 'Edit Game' : 'Add Game';
+    if (gameId) {
+      const game = getGame(gameId);
+      if (!game) return;
+      els.gameEditId.value = game.id;
+      els.gameTitleInput.value = game.title;
+      els.gameStatusSelect.value = game.status;
+      els.gameCategorySelect.value = game.categoryId;
+      els.gameTemplateSelect.value = game.templateId || 'blank';
+      els.steamAppIdInput.value = game.steamAppId || '';
+      els.bannerUrlInput.value = game.banner && !game.banner.startsWith('data:') ? game.banner : '';
+    } else {
+      const firstCat = state.categories[0];
+      els.gameCategorySelect.value = firstCat?.id || '';
+      els.gameTemplateSelect.value = forcedTemplateId || firstCat?.defaultTemplateId || 'blank';
     }
-
-    return `
-      <div class="entry-item">
-        <strong>${escapeHtml(entry.title)}</strong>
-        <div class="subtext">${escapeHtml(entry.content || '')}</div>
-        <div class="entry-actions">
-          <button class="ghost-btn" data-action="edit-entry" data-entry-id="${entry.id}" data-module-id="${module.id}">Edit</button>
-          <button class="ghost-btn" data-action="delete-entry" data-entry-id="${entry.id}">Delete</button>
-        </div>
-      </div>
-    `;
-  }
-
-  function renderBanner(game) {
-    const bannerUrl = game.bannerUrl || '';
-    if (!bannerUrl) return `<div class="game-banner">${escapeHtml(game.title)}</div>`;
-    return `
-      <div class="game-banner has-image" style="background-image:url('${escapeAttr(bannerUrl)}');">
-        <div class="banner-fade"><strong>${escapeHtml(game.title)}</strong></div>
-      </div>
-    `;
-  }
-
-  function openAddGameModal() {
-    els.gameTitleInput.value = '';
-    els.gameStatusSelect.value = 'active';
-    els.steamAppIdInput.value = '';
-    els.customBannerInput.value = '';
-    steamState.selected = null;
-    steamState.results = [];
-    els.steamStatus.textContent = 'Use the search button or paste an App ID. If Steam lookup fails, the game still creates normally.';
-    els.steamResults.innerHTML = '';
     els.gameModal.showModal();
   }
 
-  async function createGameFromForm() {
+  async function saveGameFromForm() {
+    const editId = els.gameEditId.value;
+    const bannerUpload = await fileToDataUrl(els.bannerFileInput.files[0]);
     const title = els.gameTitleInput.value.trim();
     const categoryId = els.gameCategorySelect.value;
     const templateId = els.gameTemplateSelect.value;
-    const status = els.gameStatusSelect.value;
     const steamAppId = els.steamAppIdInput.value.trim();
-    const customBanner = els.customBannerInput.value.trim();
-    if (!title) return;
-
-    let steamData = steamState.selected;
-    if (!steamData && steamAppId) {
-      steamData = await lookupSteamByAppId(steamAppId);
+    let banner = bannerUpload || els.bannerUrlInput.value.trim();
+    if (!banner && steamAppId) banner = `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`;
+    if (editId) {
+      const game = getGame(editId);
+      if (!game) return;
+      game.title = title; game.status = els.gameStatusSelect.value; game.categoryId = categoryId; game.templateId = templateId; game.steamAppId = steamAppId; if (banner) game.banner = banner;
+    } else {
+      const game = { id: uid('game'), title, status: els.gameStatusSelect.value, categoryId, templateId, steamAppId, banner, createdAt: Date.now() };
+      state.games.unshift(game);
+      instantiateTemplate(game.id, templateId);
+      touchRecent(game.id);
+      currentView = { type: 'game', id: game.id };
     }
-
-    const gameId = uid('game');
-    const template = templates[templateId] || templates.blank;
-
-    const game = {
-      id: gameId,
-      title,
-      categoryId,
-      templateId,
-      status,
-      lastViewed: Date.now(),
-      steamAppId: steamData?.appid || steamAppId || '',
-      steamStoreUrl: steamData?.storeUrl || (steamAppId ? `https://store.steampowered.com/app/${steamAppId}/` : ''),
-      bannerUrl: customBanner || steamData?.header_image || autoSteamHeader(steamAppId) || '',
-      capsuleUrl: steamData?.capsule_image || autoSteamCapsule(steamAppId) || '',
-      steamName: steamData?.name || ''
-    };
-
-    state.games.unshift(game);
-    buildModulesForGame(gameId, template);
-
-    markRecent(gameId);
-    saveState();
-    els.gameModal.close();
-    setView({ type: 'game', gameId });
+    closeDialog('gameModal');
+    render();
   }
 
-  function buildModulesForGame(gameId, template) {
-    template.modules.forEach((moduleDef, index) => {
-      const moduleId = uid('mod');
-      state.modules.push({
-        id: moduleId,
-        gameId,
-        type: moduleDef.type,
-        title: moduleDef.title,
-        icon: moduleDef.icon,
-        order: index + 1
-      });
-
-      const starter = template.starterEntries?.[moduleDef.title] || [];
-      starter.forEach(item => {
-        const normalized = typeof item === 'string'
-          ? { title: item, content: defaultContentForType(moduleDef.type), completed: false }
-          : { title: item.title, content: item.content || '', completed: false };
-
-        state.entries.push({
-          id: uid('entry'),
-          moduleId,
-          title: normalized.title,
-          content: normalized.content,
-          completed: normalized.completed
-        });
-      });
+  function instantiateTemplate(gameId, templateId) {
+    const template = getTemplate(templateId) || getTemplate('blank');
+    const currentMods = state.modules.filter(m => m.gameId === gameId);
+    if (currentMods.length) return;
+    template.modules.forEach((m, index) => {
+      state.modules.push({ id: uid('mod'), gameId, type: m.type, title: m.title, icon: m.icon || '📜', order: index });
     });
   }
 
-  function defaultContentForType(type) {
-    if (type === 'resource') return '0';
-    if (type === 'production') return '0 / min';
-    if (type === 'locations') return 'X: 0, Y: 0, Z: 0';
-    return '';
+  function openModuleModal(gameId, moduleId = '') {
+    els.moduleForm.reset();
+    els.moduleEditId.value = '';
+    els.moduleGameId.value = gameId;
+    els.moduleModalTitle.textContent = moduleId ? 'Edit Module' : 'Add Module';
+    if (moduleId) {
+      const mod = getModule(moduleId);
+      if (!mod) return;
+      els.moduleEditId.value = mod.id;
+      els.moduleTypeSelect.value = mod.type;
+      els.moduleIconInput.value = mod.icon || '';
+      els.moduleTitleInput.value = mod.title;
+    }
+    els.moduleModal.showModal();
+  }
+
+  function saveModuleFromForm() {
+    const editId = els.moduleEditId.value;
+    if (editId) {
+      const mod = getModule(editId);
+      if (!mod) return;
+      mod.type = els.moduleTypeSelect.value; mod.icon = els.moduleIconInput.value.trim() || defaultIconFor(mod.type); mod.title = els.moduleTitleInput.value.trim();
+    } else {
+      const gameModules = getModulesForGame(els.moduleGameId.value);
+      state.modules.push({ id: uid('mod'), gameId: els.moduleGameId.value, type: els.moduleTypeSelect.value, title: els.moduleTitleInput.value.trim(), icon: els.moduleIconInput.value.trim() || defaultIconFor(els.moduleTypeSelect.value), order: gameModules.length });
+    }
+    closeDialog('moduleModal');
+    render();
+  }
+
+  function deleteModule(moduleId) {
+    if (!confirm('Delete this module and its entries?')) return;
+    state.modules = state.modules.filter(m => m.id !== moduleId);
+    state.entries = state.entries.filter(e => e.moduleId !== moduleId);
+    render();
+  }
+
+  function moveModule(moduleId, delta) {
+    const mod = getModule(moduleId); if (!mod) return;
+    const mods = getModulesForGame(mod.gameId);
+    const idx = mods.findIndex(m => m.id === moduleId); const swap = idx + delta;
+    if (swap < 0 || swap >= mods.length) return;
+    const a = mods[idx], b = mods[swap];
+    [a.order, b.order] = [b.order, a.order];
+    render();
   }
 
   function openEntryModal(moduleId, entryId = '') {
-    const module = state.modules.find(m => m.id === moduleId);
-    if (!module) return;
-
-    const entry = entryId ? state.entries.find(item => item.id === entryId) : null;
-    els.entryModeInput.value = entry ? 'edit' : 'create';
-    els.entryEditId.value = entry?.id || '';
-    els.entryModuleId.value = module.id;
-    els.entryModuleType.value = module.type;
-    els.entryModalTitle.textContent = `${entry ? 'Edit' : 'Add to'} ${module.title}`;
-    els.entryTitleInput.value = entry?.title || '';
-    els.entryContentInput.value = entry?.content || '';
-    els.entryContentWrap.classList.toggle('hidden', module.type === 'checklist');
-    els.moduleEntryModal.showModal();
+    els.entryForm.reset();
+    els.entryEditId.value = '';
+    els.entryModuleId.value = moduleId;
+    els.entryModuleType.value = getModule(moduleId)?.type || 'notes';
+    els.entryModalTitle.textContent = entryId ? 'Edit Entry' : 'Add Entry';
+    if (entryId) {
+      const entry = getEntry(entryId); if (!entry) return;
+      els.entryEditId.value = entry.id; els.entryTitleInput.value = entry.title; els.entryContentInput.value = entry.content || '';
+    }
+    els.entryModal.showModal();
   }
 
-  function saveModuleEntry() {
-    const moduleId = els.entryModuleId.value;
-    const moduleType = els.entryModuleType.value;
-    const title = els.entryTitleInput.value.trim();
-    const content = els.entryContentInput.value.trim();
-    const mode = els.entryModeInput.value;
+  function saveEntryFromForm() {
     const editId = els.entryEditId.value;
-    if (!moduleId || !title) return;
-
-    if (mode === 'edit' && editId) {
-      const entry = state.entries.find(item => item.id === editId);
-      if (!entry) return;
-      entry.title = title;
-      entry.content = moduleType === 'checklist' ? '' : content;
+    if (editId) {
+      const entry = getEntry(editId); if (!entry) return;
+      entry.title = els.entryTitleInput.value.trim(); entry.content = els.entryContentInput.value.trim();
     } else {
-      state.entries.unshift({
-        id: uid('entry'),
-        moduleId,
-        title,
-        content: moduleType === 'checklist' ? '' : content,
-        completed: false
-      });
+      state.entries.push({ id: uid('entry'), moduleId: els.entryModuleId.value, title: els.entryTitleInput.value.trim(), content: els.entryContentInput.value.trim(), completed: false });
     }
-
-    saveState();
-    els.moduleEntryModal.close();
-    renderAll();
+    closeDialog('entryModal');
+    render();
   }
 
   function deleteEntry(entryId) {
-    if (!entryId) return;
-    state.entries = state.entries.filter(item => item.id !== entryId);
-    saveState();
-    renderAll();
+    state.entries = state.entries.filter(e => e.id !== entryId);
+    render();
   }
 
-  function toggleCheck(entryId) {
-    const entry = state.entries.find(item => item.id === entryId);
-    if (!entry) return;
+  function toggleChecklist(entryId) {
+    const entry = getEntry(entryId); if (!entry) return;
     entry.completed = !entry.completed;
-    saveState();
-    renderAll();
+    render();
   }
 
-  function deleteGame(gameId) {
-    if (!gameId) return;
-    state.games = state.games.filter(game => game.id !== gameId);
-    const moduleIds = state.modules.filter(module => module.gameId === gameId).map(module => module.id);
-    state.modules = state.modules.filter(module => module.gameId !== gameId);
-    state.entries = state.entries.filter(entry => !moduleIds.includes(entry.moduleId));
-    state.recentGameIds = state.recentGameIds.filter(id => id !== gameId);
-    state.favoriteGameIds = state.favoriteGameIds.filter(id => id !== gameId);
-    saveState();
-    setView({ type: 'home' });
-  }
-
-  function toggleFavorite(gameId) {
-    if (isFavorite(gameId)) {
-      state.favoriteGameIds = state.favoriteGameIds.filter(id => id !== gameId);
+  function openTemplateModal(templateId = '') {
+    syncTemplateBaseSelect();
+    els.templateForm.reset();
+    els.templateEditId.value = '';
+    els.templateModuleBuilder.innerHTML = '';
+    els.templateModalTitle.textContent = templateId ? 'Edit Template' : 'Create Template';
+    if (templateId) {
+      const template = getTemplate(templateId); if (!template) return;
+      els.templateEditId.value = template.id;
+      els.templateNameInput.value = template.name;
+      els.templateDescriptionInput.value = template.description || '';
+      els.templateBaseSelect.value = template.id;
+      template.modules.forEach(m => appendTemplateModuleRow(m));
     } else {
-      state.favoriteGameIds.unshift(gameId);
+      els.templateBaseSelect.value = 'blank';
+      defaultTemplates.blank.modules.forEach(m => appendTemplateModuleRow(m));
     }
-    saveState();
-    renderAll();
+    els.templateModal.showModal();
   }
 
-  function isFavorite(gameId) {
-    return state.favoriteGameIds.includes(gameId);
+  function appendTemplateModuleRow(module = { title: '', type: 'notes', icon: '📜' }) {
+    const row = document.createElement('div');
+    row.className = 'builder-row';
+    row.innerHTML = `
+      <div class="builder-row-grid">
+        <input class="small-input" data-role="title" placeholder="Module title" value="${escapeAttribute(module.title || '')}" />
+        <select class="small-select" data-role="type">
+          ${['notes','checklist','resource','production','locations'].map(t => `<option value="${t}" ${module.type === t ? 'selected' : ''}>${t}</option>`).join('')}
+        </select>
+        <input class="small-input" data-role="icon" maxlength="4" value="${escapeAttribute(module.icon || defaultIconFor(module.type))}" />
+        <button type="button" class="danger-btn" data-role="remove">Delete</button>
+      </div>`;
+    row.querySelector('[data-role="remove"]').addEventListener('click', () => row.remove());
+    els.templateModuleBuilder.appendChild(row);
   }
 
-  function markRecent(gameId) {
-    state.recentGameIds = [gameId, ...state.recentGameIds.filter(id => id !== gameId)].slice(0, 3);
-    const game = state.games.find(g => g.id === gameId);
-    if (game) game.lastViewed = Date.now();
-    saveState();
-  }
-
-  function resetData() {
-    localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
-    state = structuredClone(starterState);
-    seedDemoGames();
-    saveState();
-    setView({ type: 'home' });
-  }
-
-  function seedDemoGames() {
-    createDemoGame('Satisfactory', 'cat_automation', 'automation', 'active', { appid: '526870' });
-    createDemoGame('Cyberpunk 2077', 'cat_rpg', 'openWorldRpg', 'active', { appid: '1091500' });
-    createDemoGame('Minecraft', 'cat_sandbox', 'sandbox', 'paused', {});
-    createDemoGame('Big Ambitions', 'cat_life', 'lifeSim', 'researching', { appid: '1331550' });
-  }
-
-  function createDemoGame(title, categoryId, templateId, status, steam = {}) {
-    const gameId = uid('game');
-    const template = templates[templateId];
-    state.games.push({
-      id: gameId,
-      title,
-      categoryId,
-      templateId,
-      status,
-      lastViewed: Date.now(),
-      steamAppId: steam.appid || '',
-      steamStoreUrl: steam.appid ? `https://store.steampowered.com/app/${steam.appid}/` : '',
-      bannerUrl: steam.appid ? autoSteamHeader(steam.appid) : '',
-      capsuleUrl: steam.appid ? autoSteamCapsule(steam.appid) : '',
-      steamName: title
-    });
-    buildModulesForGame(gameId, template);
-    markRecent(gameId);
-  }
-
-  async function findSteamMatch() {
-    const rawTitle = els.gameTitleInput.value.trim();
-    const rawAppId = els.steamAppIdInput.value.trim();
-
-    els.steamResults.innerHTML = '';
-    steamState.results = [];
-    steamState.selected = null;
-
-    if (rawAppId) {
-      els.steamStatus.textContent = 'Checking App ID...';
-      const app = await lookupSteamByAppId(rawAppId);
-      if (app) {
-        steamState.results = [app];
-        steamState.selected = app;
-        els.steamStatus.textContent = `Locked to Steam App ID ${app.appid}.`;
-        renderSteamResults();
-      } else {
-        els.steamStatus.textContent = 'Could not pull that App ID. You can still create the game normally.';
-      }
-      return;
+  function saveTemplateFromForm() {
+    const modules = [...els.templateModuleBuilder.querySelectorAll('.builder-row')].map(row => ({
+      title: row.querySelector('[data-role="title"]').value.trim(),
+      type: row.querySelector('[data-role="type"]').value,
+      icon: row.querySelector('[data-role="icon"]').value.trim() || defaultIconFor(row.querySelector('[data-role="type"]').value)
+    })).filter(m => m.title);
+    if (!modules.length) return alert('Need at least one module in the template.');
+    const editId = els.templateEditId.value;
+    if (editId && defaultTemplates[editId]) return alert('System templates cannot be overwritten. Clone one instead.');
+    if (editId) {
+      const tpl = state.templates.find(t => t.id === editId); if (!tpl) return;
+      tpl.name = els.templateNameInput.value.trim(); tpl.description = els.templateDescriptionInput.value.trim(); tpl.modules = modules;
+    } else {
+      state.templates.unshift({ id: uid('tpl'), name: els.templateNameInput.value.trim(), description: els.templateDescriptionInput.value.trim(), modules, system: false });
     }
-
-    if (!rawTitle) {
-      els.steamStatus.textContent = 'Type a game title first.';
-      return;
-    }
-
-    els.steamStatus.textContent = 'Searching Steam...';
-    try {
-      const params = new URLSearchParams({ term: rawTitle, l: 'english', cc: 'US' });
-      const response = await fetch(`${STEAM_SEARCH_URL}?${params.toString()}`);
-      if (!response.ok) throw new Error(`Steam search failed: ${response.status}`);
-      const data = await response.json();
-      const items = Array.isArray(data.items) ? data.items.slice(0, 5) : [];
-      steamState.results = items.map(item => ({
-        appid: String(item.id),
-        name: item.name,
-        tiny_image: item.tiny_image || autoSteamCapsule(item.id),
-        capsule_image: autoSteamCapsule(item.id),
-        header_image: autoSteamHeader(item.id),
-        storeUrl: `https://store.steampowered.com/app/${item.id}/`
-      }));
-      if (!steamState.results.length) {
-        els.steamStatus.textContent = 'No Steam hits found. You can still create the game normally.';
-        return;
-      }
-      steamState.selected = steamState.results[0];
-      els.steamStatus.textContent = 'Pick the right Steam result.';
-      renderSteamResults();
-    } catch (error) {
-      console.error(error);
-      els.steamStatus.textContent = 'Steam lookup failed. That can happen if Steam blocks the request in-browser. The app still works without it.';
-    }
+    syncTemplateSelects();
+    closeDialog('templateModal');
+    render();
   }
 
-  async function lookupSteamByAppId(appid) {
-    if (!appid) return null;
-    try {
-      const params = new URLSearchParams({ appids: appid, l: 'english', cc: 'US' });
-      const response = await fetch(`${STEAM_APPDETAILS_URL}?${params.toString()}`);
-      if (!response.ok) throw new Error(`Steam appdetails failed: ${response.status}`);
-      const data = await response.json();
-      const payload = data?.[appid];
-      if (!payload?.success || !payload?.data) return null;
-      return {
-        appid: String(appid),
-        name: payload.data.name || '',
-        header_image: payload.data.header_image || autoSteamHeader(appid),
-        capsule_image: autoSteamCapsule(appid),
-        storeUrl: `https://store.steampowered.com/app/${appid}/`
-      };
-    } catch (error) {
-      console.error(error);
-      return {
-        appid: String(appid),
-        name: '',
-        header_image: autoSteamHeader(appid),
-        capsule_image: autoSteamCapsule(appid),
-        storeUrl: `https://store.steampowered.com/app/${appid}/`
-      };
-    }
+  function deleteTemplate(templateId) {
+    const tpl = state.templates.find(t => t.id === templateId);
+    if (!tpl || tpl.system) return;
+    if (!confirm('Delete this custom template?')) return;
+    state.templates = state.templates.filter(t => t.id !== templateId);
+    state.games.forEach(g => { if (g.templateId === templateId) g.templateId = 'blank'; });
+    syncTemplateSelects();
+    render();
   }
 
-  function renderSteamResults() {
-    els.steamResults.innerHTML = steamState.results.map((item, index) => `
-      <button type="button" class="steam-card ${steamState.selected?.appid === item.appid ? 'selected' : ''}" data-action="steam-pick" data-steam-index="${index}">
-        <img src="${escapeAttr(item.tiny_image || item.capsule_image || item.header_image)}" alt="${escapeAttr(item.name || 'Steam artwork')}" loading="lazy" />
-        <div>
-          <strong>${escapeHtml(item.name || 'Unknown title')}</strong>
-          <div class="subtext tiny">App ID: ${escapeHtml(item.appid)}</div>
-        </div>
-        <span class="badge">Use</span>
-      </button>
-    `).join('');
+  function cloneTemplate(templateId) {
+    const tpl = getTemplate(templateId); if (!tpl) return;
+    openTemplateModal();
+    els.templateNameInput.value = `${tpl.name} Copy`;
+    els.templateDescriptionInput.value = tpl.description || '';
+    els.templateModuleBuilder.innerHTML = '';
+    tpl.modules.forEach(m => appendTemplateModuleRow(m));
   }
 
-  function selectSteamResult(index) {
-    steamState.selected = steamState.results[index] || null;
-    if (!steamState.selected) return;
-    els.steamAppIdInput.value = steamState.selected.appid;
-    if (!els.customBannerInput.value) els.customBannerInput.value = steamState.selected.header_image || '';
-    els.steamStatus.textContent = `Selected ${steamState.selected.name || 'Steam result'} (${steamState.selected.appid}).`;
-    renderSteamResults();
+  function syncTemplateSelects() {
+    const options = allTemplates().map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    els.gameTemplateSelect.innerHTML = options;
   }
 
-  function findSearchResults(query) {
-    const seen = new Set();
-    const results = [];
-    const lowered = query.toLowerCase();
+  function syncTemplateBaseSelect() {
+    els.templateBaseSelect.innerHTML = allTemplates().map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
+    els.templateBaseSelect.onchange = () => {
+      const base = getTemplate(els.templateBaseSelect.value);
+      if (!base || els.templateEditId.value) return;
+      els.templateModuleBuilder.innerHTML = '';
+      base.modules.forEach(m => appendTemplateModuleRow(m));
+    };
+  }
 
-    state.games.forEach(game => {
-      if (game.title.toLowerCase().includes(lowered)) {
-        const key = `game:${game.id}`;
-        if (!seen.has(key)) {
-          results.push({ game, matchType: 'Game Title', preview: `Title match in ${game.title}` });
-          seen.add(key);
-        }
-      }
+  function syncCategorySelect() {
+    els.gameCategorySelect.innerHTML = state.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
+  }
 
-      const modules = state.modules.filter(module => module.gameId === game.id);
-      modules.forEach(module => {
-        if (module.title.toLowerCase().includes(lowered)) {
-          const key = `module:${game.id}:${module.id}`;
-          if (!seen.has(key)) {
-            results.push({ game, matchType: 'Module', preview: `${module.title}` });
-            seen.add(key);
-          }
-        }
-      });
+  function saveTheme() {
+    const theme = { gold: els.goldInput.value, purple: els.purpleInput.value, bg: els.bgInput.value };
+    localStorage.setItem(THEME_KEY, JSON.stringify(theme));
+    applyTheme(theme);
+    closeDialog('themeModal');
+  }
 
-      const moduleIds = modules.map(m => m.id);
-      state.entries.filter(entry => moduleIds.includes(entry.moduleId)).forEach(entry => {
-        const haystack = `${entry.title} ${entry.content}`.toLowerCase();
-        if (haystack.includes(lowered)) {
-          const key = `entry:${game.id}:${entry.id}`;
-          if (!seen.has(key)) {
-            results.push({
-              game,
-              matchType: 'Entry',
-              preview: entry.title || truncate(entry.content, 80)
-            });
-            seen.add(key);
-          }
-        }
-      });
-    });
-
-    return results.slice(0, 18);
+  function applyTheme(theme) {
+    const root = document.documentElement;
+    root.style.setProperty('--gold', theme.gold);
+    root.style.setProperty('--purple', theme.purple);
+    root.style.setProperty('--bg', theme.bg);
+    els.goldInput.value = theme.gold; els.purpleInput.value = theme.purple; els.bgInput.value = theme.bg;
   }
 
   function exportBackup() {
-    const payload = {
-      exportedAt: new Date().toISOString(),
-      version: 2,
-      state,
-      theme: JSON.parse(localStorage.getItem(THEME_KEY) || 'null')
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `game-codex-backup-${new Date().toISOString().slice(0, 10)}.json`;
-    anchor.click();
+    const a = document.createElement('a');
+    a.href = url; a.download = 'game-codex-v4-backup.json'; a.click();
     URL.revokeObjectURL(url);
   }
 
-  async function importBackup(e) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const text = await file.text();
-      const payload = JSON.parse(text);
-      const importedState = payload.state || payload;
-      state = sanitizeState(importedState);
-      saveState();
-      if (payload.theme) {
-        localStorage.setItem(THEME_KEY, JSON.stringify(payload.theme));
-        applyTheme(payload.theme);
-      }
-      setView({ type: 'home' });
-    } catch (error) {
-      console.error(error);
-      alert('That backup file is busted or in the wrong format.');
-    } finally {
-      e.target.value = '';
-    }
+  function importBackup(e) {
+    const file = e.target.files?.[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result);
+        state = normalizeState(parsed);
+        syncCategorySelect(); syncTemplateSelects(); render();
+      } catch { alert('Import failed. That file is garbage or not from Game Codex.'); }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
   }
 
-  function sanitizeState(raw) {
-    return {
+  function deleteGame(gameId) {
+    if (!confirm('Delete this game and all its data?')) return;
+    const moduleIds = state.modules.filter(m => m.gameId === gameId).map(m => m.id);
+    state.games = state.games.filter(g => g.id !== gameId);
+    state.modules = state.modules.filter(m => m.gameId !== gameId);
+    state.entries = state.entries.filter(e => !moduleIds.includes(e.moduleId));
+    state.recentGameIds = state.recentGameIds.filter(id => id !== gameId);
+    state.favoriteGameIds = state.favoriteGameIds.filter(id => id !== gameId);
+    currentView = { type: 'home' };
+    render();
+  }
+
+  function ensureDemoGames() {
+    if (state.games.length) return;
+    const demos = [
+      { title: 'Satisfactory', categoryId: 'cat_automation', templateId: 'tpl_sat_run', steamAppId: '526870', status: 'active' },
+      { title: 'Cyberpunk 2077', categoryId: 'cat_rpg', templateId: 'openWorldRpg', steamAppId: '1091500', status: 'researching' },
+      { title: 'Minecraft', categoryId: 'cat_sandbox', templateId: 'sandbox', steamAppId: '', status: 'active' }
+    ];
+    demos.forEach(d => {
+      const game = { id: uid('game'), ...d, banner: d.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${d.steamAppId}/header.jpg` : '', createdAt: Date.now() };
+      state.games.push(game);
+      instantiateTemplate(game.id, game.templateId);
+    });
+    const sat = state.games.find(g => g.title === 'Satisfactory');
+    const mc = state.games.find(g => g.title === 'Minecraft');
+    const cp = state.games.find(g => g.title === 'Cyberpunk 2077');
+    addEntryByTitle(sat.id, 'Factory Goals', 'Automate reinforced plates');
+    addEntryByTitle(sat.id, 'Production Tracker', 'Motors / min', '5');
+    addEntryByTitle(mc.id, 'Project Checklist', 'Start villager hall');
+    addEntryByTitle(cp.id, 'Main Goals', 'Track build direction');
+    state.recentGameIds = [sat.id, cp.id, mc.id];
+    state.favoriteGameIds = [sat.id];
+    saveState();
+  }
+
+  function addEntryByTitle(gameId, moduleTitle, title, content='') {
+    const mod = getModulesForGame(gameId).find(m => m.title === moduleTitle);
+    if (!mod) return;
+    state.entries.push({ id: uid('entry'), moduleId: mod.id, title, content, completed: false });
+  }
+
+  function loadState(forceFresh = false) {
+    if (forceFresh) return normalizeState(structuredClone(starterState));
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      return saved ? normalizeState(saved) : normalizeState(structuredClone(starterState));
+    } catch { return normalizeState(structuredClone(starterState)); }
+  }
+
+  function normalizeState(raw) {
+    const normalized = {
       categories: Array.isArray(raw.categories) ? raw.categories : structuredClone(starterState.categories),
+      templates: Array.isArray(raw.templates) ? raw.templates : [],
       games: Array.isArray(raw.games) ? raw.games : [],
       modules: Array.isArray(raw.modules) ? raw.modules : [],
       entries: Array.isArray(raw.entries) ? raw.entries : [],
       recentGameIds: Array.isArray(raw.recentGameIds) ? raw.recentGameIds : [],
       favoriteGameIds: Array.isArray(raw.favoriteGameIds) ? raw.favoriteGameIds : []
     };
+    Object.values(defaultTemplates).forEach(tpl => { if (!normalized.templates.find(t => t.id === tpl.id)) normalized.templates.unshift(structuredClone(tpl)); });
+    normalized.templates = dedupeById(normalized.templates.map(t => ({ ...t, system: !!(t.system || defaultTemplates[t.id]) })));
+    return normalized;
   }
 
-  function applyThemeFromForm() {
-    const theme = {
-      gold: els.goldColorInput.value,
-      purple: els.purpleColorInput.value,
-      bg: els.bgColorInput.value
-    };
-    localStorage.setItem(THEME_KEY, JSON.stringify(theme));
-    applyTheme(theme);
-  }
+  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  function loadTheme() { try { return { ...defaultTheme, ...(JSON.parse(localStorage.getItem(THEME_KEY)) || {}) }; } catch { return defaultTheme; } }
 
-  function resetTheme() {
-    const theme = { gold: '#d4af37', purple: '#3d2d63', bg: '#0f0c14' };
-    els.goldColorInput.value = theme.gold;
-    els.purpleColorInput.value = theme.purple;
-    els.bgColorInput.value = theme.bg;
-    localStorage.setItem(THEME_KEY, JSON.stringify(theme));
-    applyTheme(theme);
-  }
+  function allTemplates() { return dedupeById([...state.templates, ...Object.values(defaultTemplates)]).sort((a,b) => Number(a.system) - Number(b.system) || a.name.localeCompare(b.name)); }
+  function getTemplate(id) { return allTemplates().find(t => t.id === id); }
+  function getGame(id) { return state.games.find(g => g.id === id); }
+  function getModule(id) { return state.modules.find(m => m.id === id); }
+  function getEntry(id) { return state.entries.find(e => e.id === id); }
+  function getModulesForGame(gameId) { return state.modules.filter(m => m.gameId === gameId).sort((a,b) => a.order - b.order); }
+  function getEntriesForModule(moduleId) { return state.entries.filter(e => e.moduleId === moduleId); }
 
-  function applyStoredTheme() {
-    const theme = JSON.parse(localStorage.getItem(THEME_KEY) || localStorage.getItem(LEGACY_THEME_KEY) || 'null');
-    if (!theme) return;
-    els.goldColorInput.value = theme.gold || '#d4af37';
-    els.purpleColorInput.value = theme.purple || '#3d2d63';
-    els.bgColorInput.value = theme.bg || '#0f0c14';
-    applyTheme(theme);
-  }
-
-  function applyTheme(theme) {
-    document.documentElement.style.setProperty('--gold', theme.gold);
-    document.documentElement.style.setProperty('--purple', theme.purple);
-    document.documentElement.style.setProperty('--bg', theme.bg);
-    document.documentElement.style.setProperty('--gold-soft', hexToRgba(theme.gold, 0.16));
-  }
-
-  function loadState() {
-    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
-    if (!raw) return structuredClone(starterState);
-    try {
-      const parsed = JSON.parse(raw);
-      return sanitizeState({ ...structuredClone(starterState), ...parsed });
-    } catch {
-      return structuredClone(starterState);
-    }
-  }
-
-  function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }
-
-  function openSidebar() {
-    els.sidebar.classList.remove('closed');
-    els.overlay.classList.remove('hidden');
-  }
-
-  function closeSidebar() {
-    if (window.innerWidth >= 980) return;
-    els.sidebar.classList.add('closed');
-    els.overlay.classList.add('hidden');
-  }
-
-  function autoSteamHeader(appid) {
-    return appid ? `${STEAM_ASSET_BASE}/${appid}/header.jpg` : '';
-  }
-
-  function autoSteamCapsule(appid) {
-    return appid ? `${STEAM_ASSET_BASE}/${appid}/capsule_231x87.jpg` : '';
-  }
-
-  function uid(prefix) {
-    return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
-  }
-
-  function capitalize(value) {
-    return value.charAt(0).toUpperCase() + value.slice(1);
-  }
-
-  function truncate(value, max = 80) {
-    return value.length > max ? `${value.slice(0, max - 1)}…` : value;
-  }
-
-  function hexToRgba(hex, alpha) {
-    const clean = hex.replace('#', '');
-    const bigint = parseInt(clean, 16);
-    const r = (bigint >> 16) & 255;
-    const g = (bigint >> 8) & 255;
-    const b = bigint & 255;
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  }
-
-  function escapeHtml(value) {
-    return String(value || '')
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#39;');
-  }
-
-  function escapeAttr(value) {
-    return escapeHtml(value).replaceAll('`', '&#96;');
-  }
-
-  function q(selector) {
-    return document.querySelector(selector);
+  function uid(prefix) { return `${prefix}_${Math.random().toString(36).slice(2,10)}`; }
+  function dedupeById(arr) { return arr.filter((item, idx, list) => list.findIndex(x => x.id === item.id) === idx); }
+  function defaultIconFor(type) { return ({ notes: '📜', checklist: '✔', resource: '📦', production: '⚙️', locations: '📍' })[type] || '📜'; }
+  function escapeHtml(v) { return String(v ?? '').replace(/[&<>'"]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[m])); }
+  function escapeAttribute(v) { return escapeHtml(v).replace(/`/g, '&#96;'); }
+  async function fileToDataUrl(file) {
+    if (!file) return '';
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 })();
