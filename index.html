@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#120f18" />
-  <title>Game Codex v6</title>
+  <title>Game Codex v7</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -50,12 +50,12 @@
         <div class="topbar-left">
           <button id="openSidebarBtn" class="icon-btn" type="button">☰</button>
           <div>
-            <div class="eyebrow">v6 · custom categories + archive + clone</div>
+            <div class="eyebrow">v7 · servers + game capability toggles</div>
             <h2 id="viewTitle">Game Codex</h2>
           </div>
         </div>
         <div class="topbar-right">
-          <input id="searchInput" class="search" type="search" placeholder="Search games, profiles, modules..." />
+          <input id="searchInput" class="search" type="search" placeholder="Search games, profiles, servers, modules..." />
           <button id="addGameBtn" class="primary-btn" type="button">+ Add Game</button>
         </div>
       </header>
@@ -64,6 +64,7 @@
       <section id="categoryView" class="view hidden"></section>
       <section id="gameView" class="view hidden"></section>
       <section id="profileView" class="view hidden"></section>
+      <section id="serverView" class="view hidden"></section>
       <section id="favoritesView" class="view hidden"></section>
       <section id="archiveView" class="view hidden"></section>
     </main>
@@ -84,6 +85,10 @@
       <div class="form-grid two">
         <label><span>Favorite</span><select id="gameFavoriteInput"><option value="false">No</option><option value="true">Yes</option></select></label>
         <label><span>Optional Steam App ID</span><input id="gameSteamInput" type="text" placeholder="526870" /></label>
+      </div>
+      <div class="toggle-row">
+        <label class="check-pill"><input id="gameSupportsProfilesInput" type="checkbox" checked /> Allow Profiles</label>
+        <label class="check-pill"><input id="gameSupportsServersInput" type="checkbox" /> Allow Servers</label>
       </div>
       <div class="modal-actions"><button type="button" class="secondary-btn" data-close="gameModal">Cancel</button><button type="submit" class="primary-btn">Save Game</button></div>
     </form>
@@ -127,11 +132,30 @@
     </form>
   </dialog>
 
+  <dialog id="serverModal" class="modal">
+    <form id="serverForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Server Forge</div><h3 id="serverModalTitle">Create Server</h3></div><button type="button" class="icon-btn" data-close="serverModal">✕</button></div>
+      <input id="serverEditId" type="hidden" />
+      <input id="serverGameId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Server name</span><input id="serverNameInput" type="text" required /></label>
+        <label><span>Template</span><select id="serverTemplateInput"><option value="blank">Blank Server</option><option value="smp">SMP</option><option value="rpg">RPG</option><option value="economy">Economy</option><option value="modded">Modded</option></select></label>
+      </div>
+      <div class="form-grid two">
+        <label><span>Status</span><select id="serverStatusInput"><option value="planning">Planning</option><option value="building">Building</option><option value="live">Live</option><option value="paused">Paused</option><option value="archived">Archived</option></select></label>
+        <label><span>Version / Platform</span><input id="serverVersionInput" type="text" placeholder="1.21.1 Paper" /></label>
+      </div>
+      <label><span>Theme / focus</span><input id="serverThemeInput" type="text" placeholder="dark fantasy SMP, economy grind..." /></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="serverModal">Cancel</button><button type="submit" class="primary-btn">Save Server</button></div>
+    </form>
+  </dialog>
+
   <dialog id="moduleModal" class="modal wide">
     <form id="moduleForm" class="modal-card">
       <div class="modal-head"><div><div class="eyebrow">Module Forge</div><h3 id="moduleModalTitle">Add Module</h3></div><button type="button" class="icon-btn" data-close="moduleModal">✕</button></div>
       <input id="moduleEditId" type="hidden" />
-      <input id="moduleProfileId" type="hidden" />
+      <input id="moduleOwnerType" type="hidden" />
+      <input id="moduleOwnerId" type="hidden" />
       <div class="form-grid two">
         <label><span>Title</span><input id="moduleTitleInput" type="text" required /></label>
         <label><span>Type</span>
@@ -144,29 +168,14 @@
         </label>
       </div>
       <label><span>Icon</span><input id="moduleIconInput" type="text" placeholder="📜" maxlength="4" /></label>
-
       <section id="customFieldBuilderSection" class="builder-section hidden">
-        <div class="builder-head">
-          <div>
-            <div class="eyebrow">Custom Fields</div>
-            <strong>Build your own fields</strong>
-          </div>
-          <button id="addFieldBtn" type="button" class="secondary-btn">+ Add Field</button>
-        </div>
+        <div class="builder-head"><div><div class="eyebrow">Custom Fields</div><strong>Build your own fields</strong></div><button id="addFieldBtn" type="button" class="secondary-btn">+ Add Field</button></div>
         <div id="fieldBuilderList" class="builder-list"></div>
       </section>
-
       <section id="tableBuilderSection" class="builder-section hidden">
-        <div class="builder-head">
-          <div>
-            <div class="eyebrow">Custom Table</div>
-            <strong>Define columns</strong>
-          </div>
-          <button id="addColumnBtn" type="button" class="secondary-btn">+ Add Column</button>
-        </div>
+        <div class="builder-head"><div><div class="eyebrow">Custom Table</div><strong>Define columns</strong></div><button id="addColumnBtn" type="button" class="secondary-btn">+ Add Column</button></div>
         <div id="columnBuilderList" class="builder-list"></div>
       </section>
-
       <div class="modal-actions"><button type="button" class="secondary-btn" data-close="moduleModal">Cancel</button><button type="submit" class="primary-btn">Save Module</button></div>
     </form>
   </dialog>
