@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#120f18" />
-  <title>Game Codex v4</title>
+  <title>Game Codex v5</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -16,30 +16,24 @@
           <div class="eyebrow">Royal Archive</div>
           <h1>Game Codex</h1>
         </div>
-        <button id="closeSidebarBtn" class="icon-btn" aria-label="Close menu">✕</button>
+        <button id="closeSidebarBtn" class="icon-btn">✕</button>
       </div>
-
-      <nav class="sidebar-nav sidebar-list">
-        <button class="nav-btn active" data-nav-view="home">🏠 Home</button>
-        <button class="nav-btn" data-nav-view="favorites">⭐ Favorites</button>
-        <button class="nav-btn" data-nav-view="templates">🧩 Templates</button>
-      </nav>
-
-      <section class="sidebar-section">
+      <div class="sidebar-section">
+        <button class="nav-btn active" data-view="home">🏠 Home</button>
+        <button class="nav-btn" data-view="favorites">⭐ Favorites</button>
+      </div>
+      <div class="sidebar-section">
         <div class="section-label">Categories</div>
         <div id="sidebarCategories" class="sidebar-list"></div>
-      </section>
-
-      <section class="sidebar-section">
+      </div>
+      <div class="sidebar-section">
         <div class="section-label">Tools</div>
         <div class="sidebar-list">
-          <button id="openTemplateBtn" class="nav-btn">🧩 New Template</button>
-          <button id="openThemeBtn" class="nav-btn">🎨 Theme</button>
-          <button id="exportBtn" class="nav-btn">📦 Export Backup</button>
-          <label class="nav-btn file-label">📥 Import Backup<input id="importInput" type="file" accept="application/json" hidden /></label>
-          <button id="resetBtn" class="nav-btn danger">🧨 Reset Demo Data</button>
+          <button id="exportBtn" class="nav-btn">📦 Export</button>
+          <label class="nav-btn file-label">📥 Import<input id="importInput" type="file" accept="application/json" hidden /></label>
+          <button id="resetBtn" class="nav-btn danger">🧨 Reset Demo</button>
         </div>
-      </section>
+      </div>
     </aside>
 
     <div id="overlay" class="overlay hidden"></div>
@@ -47,14 +41,14 @@
     <main class="main">
       <header class="topbar">
         <div class="topbar-left">
-          <button id="openSidebarBtn" class="icon-btn" aria-label="Open menu">☰</button>
+          <button id="openSidebarBtn" class="icon-btn">☰</button>
           <div>
-            <div class="eyebrow">Personal gaming archive</div>
+            <div class="eyebrow">Profiles + custom fields build</div>
             <h2 id="viewTitle">Game Codex</h2>
           </div>
         </div>
         <div class="topbar-right">
-          <label class="search-wrap"><input id="searchInput" type="search" placeholder="Search games, modules, notes..." /></label>
+          <input id="searchInput" class="search" type="search" placeholder="Search games, profiles, modules..." />
           <button id="addGameBtn" class="primary-btn">+ Add Game</button>
         </div>
       </header>
@@ -62,99 +56,113 @@
       <section id="homeView" class="view"></section>
       <section id="categoryView" class="view hidden"></section>
       <section id="gameView" class="view hidden"></section>
+      <section id="profileView" class="view hidden"></section>
       <section id="favoritesView" class="view hidden"></section>
-      <section id="templatesView" class="view hidden"></section>
     </main>
   </div>
 
   <dialog id="gameModal" class="modal">
     <form id="gameForm" class="modal-card">
-      <div class="modal-head">
-        <div><div class="eyebrow">Game Setup</div><h3 id="gameModalTitle">Add Game</h3></div>
-        <button type="button" class="icon-btn" data-close-dialog="gameModal">✕</button>
-      </div>
+      <div class="modal-head"><div><div class="eyebrow">Game Setup</div><h3 id="gameModalTitle">Add Game</h3></div><button type="button" class="icon-btn" data-close="gameModal">✕</button></div>
       <input id="gameEditId" type="hidden" />
       <div class="form-grid two">
         <label><span>Game title</span><input id="gameTitleInput" type="text" required /></label>
-        <label><span>Status</span><select id="gameStatusSelect"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="researching">Researching</option><option value="wishlist">Wishlist</option></select></label>
+        <label><span>Status</span><select id="gameStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="archived">Archived</option></select></label>
       </div>
       <div class="form-grid two">
-        <label><span>Category</span><select id="gameCategorySelect"></select></label>
-        <label><span>Template</span><select id="gameTemplateSelect"></select></label>
+        <label><span>Category</span><select id="gameCategoryInput"></select></label>
+        <label><span>Banner URL</span><input id="gameBannerInput" type="url" placeholder="optional https://..." /></label>
       </div>
       <div class="form-grid two">
-        <label><span>Optional Steam App ID</span><input id="steamAppIdInput" type="text" placeholder="526870" /></label>
-        <label><span>Optional banner URL</span><input id="bannerUrlInput" type="url" placeholder="https://..." /></label>
+        <label><span>Favorite</span><select id="gameFavoriteInput"><option value="false">No</option><option value="true">Yes</option></select></label>
+        <label><span>Optional Steam App ID</span><input id="gameSteamInput" type="text" placeholder="526870" /></label>
       </div>
-      <label><span>Or upload banner image</span><input id="bannerFileInput" type="file" accept="image/*" /></label>
-      <div class="helper-text">You can use a Steam App ID, a banner URL, or your own uploaded image. Manual add stays king.</div>
-      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="gameModal">Cancel</button><button type="submit" class="primary-btn">Save Game</button></div>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="gameModal">Cancel</button><button type="submit" class="primary-btn">Save Game</button></div>
     </form>
   </dialog>
 
-  <dialog id="moduleModal" class="modal">
-    <form id="moduleForm" class="modal-card">
-      <div class="modal-head">
-        <div><div class="eyebrow">Module Control</div><h3 id="moduleModalTitle">Add Module</h3></div>
-        <button type="button" class="icon-btn" data-close-dialog="moduleModal">✕</button>
-      </div>
-      <input id="moduleEditId" type="hidden" />
-      <input id="moduleGameId" type="hidden" />
+  <dialog id="profileModal" class="modal">
+    <form id="profileForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Profile</div><h3 id="profileModalTitle">Add Profile</h3></div><button type="button" class="icon-btn" data-close="profileModal">✕</button></div>
+      <input id="profileEditId" type="hidden" />
+      <input id="profileGameId" type="hidden" />
       <div class="form-grid two">
-        <label><span>Module type</span><select id="moduleTypeSelect"><option value="notes">Notes</option><option value="checklist">Checklist</option><option value="resource">Resource Tracker</option><option value="production">Production Tracker</option><option value="locations">Locations</option></select></label>
-        <label><span>Icon</span><input id="moduleIconInput" type="text" maxlength="4" placeholder="📜" /></label>
+        <label><span>Name</span><input id="profileNameInput" type="text" required /></label>
+        <label><span>Type</span><select id="profileTypeInput"><option value="world">World</option><option value="playthrough">Playthrough</option><option value="save">Save</option><option value="run">Run</option><option value="build">Build</option><option value="custom">Custom</option></select></label>
       </div>
-      <label><span>Module title</span><input id="moduleTitleInput" type="text" required /></label>
-      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="moduleModal">Cancel</button><button type="submit" class="primary-btn">Save Module</button></div>
+      <div class="form-grid two">
+        <label><span>Status</span><select id="profileStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="archived">Archived</option></select></label>
+        <label><span>Accent note</span><input id="profileTagInput" type="text" placeholder="modded, solo, hardcore..." /></label>
+      </div>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="profileModal">Cancel</button><button type="submit" class="primary-btn">Save Profile</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="moduleModal" class="modal wide">
+    <form id="moduleForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Module Forge</div><h3 id="moduleModalTitle">Add Module</h3></div><button type="button" class="icon-btn" data-close="moduleModal">✕</button></div>
+      <input id="moduleEditId" type="hidden" />
+      <input id="moduleProfileId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Title</span><input id="moduleTitleInput" type="text" required /></label>
+        <label><span>Type</span>
+          <select id="moduleTypeInput">
+            <option value="notes">Notes</option>
+            <option value="checklist">Checklist</option>
+            <option value="custom">Custom Fields</option>
+            <option value="table">Custom Table</option>
+          </select>
+        </label>
+      </div>
+      <label><span>Icon</span><input id="moduleIconInput" type="text" placeholder="📜" maxlength="4" /></label>
+
+      <section id="customFieldBuilderSection" class="builder-section hidden">
+        <div class="builder-head">
+          <div>
+            <div class="eyebrow">Custom Fields</div>
+            <strong>Build your own fields</strong>
+          </div>
+          <button id="addFieldBtn" type="button" class="secondary-btn">+ Add Field</button>
+        </div>
+        <div id="fieldBuilderList" class="builder-list"></div>
+      </section>
+
+      <section id="tableBuilderSection" class="builder-section hidden">
+        <div class="builder-head">
+          <div>
+            <div class="eyebrow">Custom Table</div>
+            <strong>Define columns</strong>
+          </div>
+          <button id="addColumnBtn" type="button" class="secondary-btn">+ Add Column</button>
+        </div>
+        <div id="columnBuilderList" class="builder-list"></div>
+      </section>
+
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="moduleModal">Cancel</button><button type="submit" class="primary-btn">Save Module</button></div>
     </form>
   </dialog>
 
   <dialog id="entryModal" class="modal">
     <form id="entryForm" class="modal-card">
-      <div class="modal-head">
-        <div><div class="eyebrow">Entry</div><h3 id="entryModalTitle">Add Entry</h3></div>
-        <button type="button" class="icon-btn" data-close-dialog="entryModal">✕</button>
-      </div>
+      <div class="modal-head"><div><div class="eyebrow">Entry</div><h3 id="entryModalTitle">Add Entry</h3></div><button type="button" class="icon-btn" data-close="entryModal">✕</button></div>
       <input id="entryEditId" type="hidden" />
       <input id="entryModuleId" type="hidden" />
-      <input id="entryModuleType" type="hidden" />
       <label><span>Title</span><input id="entryTitleInput" type="text" required /></label>
-      <label><span>Details</span><textarea id="entryContentInput" rows="5" placeholder="Ratios, routes, warnings, coordinates, whatever matters..."></textarea></label>
-      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="entryModal">Cancel</button><button type="submit" class="primary-btn">Save Entry</button></div>
+      <label><span>Details</span><textarea id="entryContentInput" rows="5"></textarea></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="entryModal">Cancel</button><button type="submit" class="primary-btn">Save Entry</button></div>
     </form>
   </dialog>
 
-  <dialog id="templateModal" class="modal">
-    <form id="templateForm" class="modal-card">
-      <div class="modal-head">
-        <div><div class="eyebrow">Template Forge</div><h3 id="templateModalTitle">Create Template</h3></div>
-        <button type="button" class="icon-btn" data-close-dialog="templateModal">✕</button>
-      </div>
-      <input id="templateEditId" type="hidden" />
-      <div class="form-grid two">
-        <label><span>Template name</span><input id="templateNameInput" type="text" required /></label>
-        <label><span>Base from</span><select id="templateBaseSelect"></select></label>
-      </div>
-      <label><span>Description</span><input id="templateDescriptionInput" type="text" placeholder="Built for Satisfactory megafactory planning" /></label>
-      <label><span>Starter modules</span><div id="templateModuleBuilder" class="builder-list"></div></label>
-      <div class="inline-actions"><button type="button" id="addTemplateModuleBtn" class="secondary-btn">+ Add Template Module</button></div>
-      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="templateModal">Cancel</button><button type="submit" class="primary-btn">Save Template</button></div>
+  <dialog id="tableRowModal" class="modal wide">
+    <form id="tableRowForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Table Row</div><h3 id="tableRowTitle">Add Row</h3></div><button type="button" class="icon-btn" data-close="tableRowModal">✕</button></div>
+      <input id="tableRowEditId" type="hidden" />
+      <input id="tableRowModuleId" type="hidden" />
+      <div id="tableRowFields" class="builder-list"></div>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="tableRowModal">Cancel</button><button type="submit" class="primary-btn">Save Row</button></div>
     </form>
   </dialog>
 
-  <dialog id="themeModal" class="modal">
-    <form id="themeForm" class="modal-card">
-      <div class="modal-head"><div><div class="eyebrow">Visual Tuning</div><h3>Theme</h3></div><button type="button" class="icon-btn" data-close-dialog="themeModal">✕</button></div>
-      <div class="form-grid two">
-        <label><span>Gold Accent</span><input id="goldInput" type="color" value="#d4af37" /></label>
-        <label><span>Purple Accent</span><input id="purpleInput" type="color" value="#3d2d63" /></label>
-      </div>
-      <label><span>Background Tone</span><input id="bgInput" type="color" value="#0f0c14" /></label>
-      <div class="modal-actions"><button type="button" class="secondary-btn" data-close-dialog="themeModal">Cancel</button><button type="submit" class="primary-btn">Apply Theme</button></div>
-    </form>
-  </dialog>
-
-  <script src="js/templates.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

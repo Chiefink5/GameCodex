@@ -1,666 +1,559 @@
-(() => {
-  const STORAGE_KEY = 'game_codex_v4';
-  const THEME_KEY = 'game_codex_theme_v4';
-  const defaultTemplates = window.GAME_CODEX_DEFAULT_TEMPLATES;
-  const defaultTheme = { gold: '#d4af37', purple: '#3d2d63', bg: '#0f0c14' };
+const STORAGE_KEY = 'game_codex_v5';
+const CATEGORIES = [
+  { id: 'sandbox', name: 'Sandbox / Creative', icon: '🧱' },
+  { id: 'automation', name: 'Automation / Factory', icon: '⚙️' },
+  { id: 'open-world-rpg', name: 'Open World RPG', icon: '🗡' },
+  { id: 'survival', name: 'Survival / Exploration', icon: '🔥' },
+  { id: 'life-sim', name: 'Life Sim / Business', icon: '🏙' },
+  { id: 'simulation', name: 'Simulation / Systems', icon: '🖥' },
+  { id: 'experimental', name: 'Experimental / Oddball', icon: '🧪' },
+];
 
-  const starterState = {
-    categories: [
-      { id: 'cat_sandbox', name: 'Sandbox / Creative', icon: '🧱', defaultTemplateId: 'sandbox' },
-      { id: 'cat_automation', name: 'Automation / Factory', icon: '⚙️', defaultTemplateId: 'automation' },
-      { id: 'cat_life', name: 'Life Sim / Business', icon: '🏙️', defaultTemplateId: 'lifeSim' },
-      { id: 'cat_rpg', name: 'Open World RPG', icon: '🗡️', defaultTemplateId: 'openWorldRpg' },
-      { id: 'cat_survival', name: 'Survival / Exploration', icon: '🔥', defaultTemplateId: 'survival' },
-      { id: 'cat_sim', name: 'Simulation / Systems', icon: '🖥️', defaultTemplateId: 'blank' },
-      { id: 'cat_odd', name: 'Experimental / Oddball', icon: '🧪', defaultTemplateId: 'blank' }
+const state = {
+  view: { name: 'home', id: null },
+  search: '',
+  data: loadData(),
+};
+
+function id(prefix = 'id') { return `${prefix}_${Math.random().toString(36).slice(2,10)}`; }
+function now() { return Date.now(); }
+function categoryById(id) { return CATEGORIES.find(c => c.id === id); }
+function saveData() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state.data)); }
+function loadData() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (raw) return JSON.parse(raw);
+  return seedData();
+}
+function seedData() {
+  const game1 = id('game'), game2 = id('game'), game3 = id('game');
+  const p1 = id('profile'), p2 = id('profile'), p3 = id('profile'), p4 = id('profile');
+  const m1 = id('module'), m2 = id('module'), m3 = id('module'), m4 = id('module'), m5 = id('module');
+  const e1 = id('entry'), e2 = id('entry'), e3 = id('entry');
+  return {
+    games: [
+      { id: game1, title: 'Minecraft', categoryId: 'sandbox', status: 'active', favorite: true, lastViewed: now(), banner: '', steamAppId: '' },
+      { id: game2, title: 'Enshrouded', categoryId: 'survival', status: 'active', favorite: true, lastViewed: now()-1000, banner: '', steamAppId: '1203620' },
+      { id: game3, title: 'Satisfactory', categoryId: 'automation', status: 'paused', favorite: false, lastViewed: now()-2000, banner: '', steamAppId: '526870' },
     ],
-    templates: [
-      {
-        id: 'tpl_sat_run',
-        name: 'Satisfactory Run',
-        description: 'Factory-first layout with one extra expansion module.',
-        system: false,
-        modules: [
-          { type: 'checklist', title: 'Factory Goals', icon: '✔' },
-          { type: 'resource', title: 'Resource Tracker', icon: '📦' },
-          { type: 'production', title: 'Production Tracker', icon: '⚙️' },
-          { type: 'notes', title: 'Expansion Plans', icon: '🗺️' },
-          { type: 'notes', title: 'Bottlenecks / Problems', icon: '⚠️' },
-          { type: 'locations', title: 'Locations', icon: '📍' }
-        ]
-      }
+    profiles: [
+      { id: p1, gameId: game1, name: 'Vanilla Survival', type: 'world', status: 'active', tag: 'solo', lastViewed: now() },
+      { id: p2, gameId: game1, name: 'Modded RPG World', type: 'world', status: 'paused', tag: 'skill plugin', lastViewed: now()-100 },
+      { id: p3, gameId: game2, name: 'Solo Battlemage', type: 'playthrough', status: 'active', tag: 'mage build', lastViewed: now()-500 },
+      { id: p4, gameId: game3, name: 'Main Factory', type: 'save', status: 'paused', tag: 'desert start', lastViewed: now()-900 },
     ],
-    games: [],
-    modules: [],
-    entries: [],
-    recentGameIds: [],
-    favoriteGameIds: []
+    modules: [
+      { id: m1, profileId: p2, type: 'table', title: 'Skill XP Guide', icon: '📊', order: 1, columns: [{id:id('col'),label:'Skill',type:'text'},{id:id('col'),label:'Best Method',type:'text'},{id:id('col'),label:'XP Rate',type:'select',options:['Low','Medium','High']},{id:id('col'),label:'Notes',type:'text'}], rows: [
+        { id:id('row'), values:{0:'Mining',1:'Deep cave iron routes',2:'High',3:'Great with vein miner'} },
+        { id:id('row'), values:{0:'Combat',1:'Mob grinder',2:'High',3:'Easy passive grind'} },
+      ]},
+      { id: m2, profileId: p3, type: 'custom', title: 'Build Progression', icon: '🧠', order: 1, fields:[
+        {id:id('field'),label:'Build Type',type:'select',options:['Mage','Tank','Ranger','Hybrid']},
+        {id:id('field'),label:'Main Weapon',type:'text'},
+        {id:id('field'),label:'Skill Stage',type:'select',options:['Early','Mid','Late']},
+        {id:id('field'),label:'Battle Heal Unlocked',type:'toggle'},
+      ], values:{} },
+      { id: m3, profileId: p3, type: 'checklist', title: 'Skill Goals', icon: '✔', order: 2 },
+      { id: m4, profileId: p4, type: 'notes', title: 'Bottlenecks', icon: '📜', order: 1 },
+      { id: m5, profileId: p1, type: 'checklist', title: 'World Goals', icon: '✔', order: 1 },
+    ],
+    entries: [
+      { id: e1, moduleId: m3, title: 'Unlock Blink', content: '', checked: true },
+      { id: e2, moduleId: m3, title: 'Push wand tree', content: '', checked: false },
+      { id: e3, moduleId: m4, title: 'Rotors are the choke point', content: 'Need cleaner iron + screw line split.', checked: false },
+    ],
   };
+}
 
-  let state = loadState();
-  let currentView = { type: 'home' };
-  let searchQuery = '';
+const el = (sel) => document.querySelector(sel);
+const els = (sel) => [...document.querySelectorAll(sel)];
+const views = ['homeView', 'categoryView', 'gameView', 'profileView', 'favoritesView'];
 
-  const els = mapElements();
+function closeSidebar() { el('#sidebar').classList.add('closed'); el('#overlay').classList.add('hidden'); }
+function openSidebar() { el('#sidebar').classList.remove('closed'); el('#overlay').classList.remove('hidden'); }
 
-  init();
+function formatStatus(status){ return status.replace('-', ' '); }
+function steamBanner(appId){ return appId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${appId}/header.jpg` : ''; }
+function gameBanner(game){ return game.banner || steamBanner(game.steamAppId) || ''; }
+function getGame(id){ return state.data.games.find(g=>g.id===id); }
+function getProfile(id){ return state.data.profiles.find(p=>p.id===id); }
+function profilesForGame(gameId){ return state.data.profiles.filter(p=>p.gameId===gameId).sort((a,b)=>b.lastViewed-a.lastViewed); }
+function modulesForProfile(profileId){ return state.data.modules.filter(m=>m.profileId===profileId).sort((a,b)=>a.order-b.order); }
+function entriesForModule(moduleId){ return state.data.entries.filter(e=>e.moduleId===moduleId); }
+function recentGames(){ return [...state.data.games].sort((a,b)=>b.lastViewed-a.lastViewed).slice(0,3); }
+function favoriteGames(){ return state.data.games.filter(g=>g.favorite); }
 
-  function init() {
-    applyTheme(loadTheme());
-    wireEvents();
-    ensureDemoGames();
-    syncTemplateSelects();
-    syncCategorySelect();
-    render();
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js').catch(() => {});
-    }
-  }
+function setView(name, idVal = null){
+  state.view = { name, id: idVal };
+  views.forEach(v => el('#'+v).classList.add('hidden'));
+  if(name === 'home'){ el('#homeView').classList.remove('hidden'); el('#viewTitle').textContent = 'Game Codex'; }
+  if(name === 'favorites'){ el('#favoritesView').classList.remove('hidden'); el('#viewTitle').textContent = 'Favorites'; }
+  if(name === 'category'){ const cat = categoryById(idVal); el('#categoryView').classList.remove('hidden'); el('#viewTitle').textContent = cat?.name || 'Category'; }
+  if(name === 'game'){ const game = getGame(idVal); el('#gameView').classList.remove('hidden'); el('#viewTitle').textContent = game?.title || 'Game'; }
+  if(name === 'profile'){ const profile = getProfile(idVal); el('#profileView').classList.remove('hidden'); el('#viewTitle').textContent = profile?.name || 'Profile'; }
+  els('.nav-btn[data-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.view === name));
+  render();
+}
 
-  function mapElements() {
-    const q = (s) => document.querySelector(s);
-    return {
-      sidebar: q('#sidebar'), overlay: q('#overlay'), openSidebarBtn: q('#openSidebarBtn'), closeSidebarBtn: q('#closeSidebarBtn'),
-      sidebarCategories: q('#sidebarCategories'), viewTitle: q('#viewTitle'), searchInput: q('#searchInput'),
-      homeView: q('#homeView'), categoryView: q('#categoryView'), gameView: q('#gameView'), favoritesView: q('#favoritesView'), templatesView: q('#templatesView'),
-      addGameBtn: q('#addGameBtn'), exportBtn: q('#exportBtn'), importInput: q('#importInput'), resetBtn: q('#resetBtn'), openThemeBtn: q('#openThemeBtn'), openTemplateBtn: q('#openTemplateBtn'),
-      gameModal: q('#gameModal'), gameModalTitle: q('#gameModalTitle'), gameForm: q('#gameForm'), gameEditId: q('#gameEditId'), gameTitleInput: q('#gameTitleInput'), gameStatusSelect: q('#gameStatusSelect'), gameCategorySelect: q('#gameCategorySelect'), gameTemplateSelect: q('#gameTemplateSelect'), steamAppIdInput: q('#steamAppIdInput'), bannerUrlInput: q('#bannerUrlInput'), bannerFileInput: q('#bannerFileInput'),
-      moduleModal: q('#moduleModal'), moduleModalTitle: q('#moduleModalTitle'), moduleForm: q('#moduleForm'), moduleEditId: q('#moduleEditId'), moduleGameId: q('#moduleGameId'), moduleTypeSelect: q('#moduleTypeSelect'), moduleIconInput: q('#moduleIconInput'), moduleTitleInput: q('#moduleTitleInput'),
-      entryModal: q('#entryModal'), entryModalTitle: q('#entryModalTitle'), entryForm: q('#entryForm'), entryEditId: q('#entryEditId'), entryModuleId: q('#entryModuleId'), entryModuleType: q('#entryModuleType'), entryTitleInput: q('#entryTitleInput'), entryContentInput: q('#entryContentInput'),
-      templateModal: q('#templateModal'), templateModalTitle: q('#templateModalTitle'), templateForm: q('#templateForm'), templateEditId: q('#templateEditId'), templateNameInput: q('#templateNameInput'), templateDescriptionInput: q('#templateDescriptionInput'), templateBaseSelect: q('#templateBaseSelect'), templateModuleBuilder: q('#templateModuleBuilder'), addTemplateModuleBtn: q('#addTemplateModuleBtn'),
-      themeModal: q('#themeModal'), themeForm: q('#themeForm'), goldInput: q('#goldInput'), purpleInput: q('#purpleInput'), bgInput: q('#bgInput')
-    };
-  }
+function renderSidebar(){
+  const wrap = el('#sidebarCategories');
+  wrap.innerHTML = '';
+  CATEGORIES.forEach(cat => {
+    const btn = document.createElement('button');
+    btn.className = 'nav-btn';
+    btn.innerHTML = `${cat.icon} ${cat.name}`;
+    btn.onclick = () => { setView('category', cat.id); closeSidebar(); };
+    wrap.appendChild(btn);
+  });
+}
 
-  function wireEvents() {
-    els.openSidebarBtn.addEventListener('click', openSidebar);
-    els.closeSidebarBtn.addEventListener('click', closeSidebar);
-    els.overlay.addEventListener('click', closeSidebar);
-    document.querySelectorAll('[data-nav-view]').forEach(btn => btn.addEventListener('click', () => switchView({ type: btn.dataset.navView })));
-    document.querySelectorAll('[data-close-dialog]').forEach(btn => btn.addEventListener('click', () => closeDialog(btn.dataset.closeDialog)));
-
-    els.searchInput.addEventListener('input', e => { searchQuery = e.target.value.trim().toLowerCase(); render(); });
-    els.addGameBtn.addEventListener('click', () => openGameModal());
-    els.openThemeBtn.addEventListener('click', () => els.themeModal.showModal());
-    els.openTemplateBtn.addEventListener('click', () => openTemplateModal());
-    els.exportBtn.addEventListener('click', exportBackup);
-    els.importInput.addEventListener('change', importBackup);
-    els.resetBtn.addEventListener('click', () => { if (confirm('Reset back to clean demo data?')) { localStorage.removeItem(STORAGE_KEY); state = loadState(true); ensureDemoGames(); render(); } });
-
-    els.gameCategorySelect.addEventListener('change', () => {
-      const cat = state.categories.find(c => c.id === els.gameCategorySelect.value);
-      if (cat && !els.gameEditId.value) els.gameTemplateSelect.value = cat.defaultTemplateId || 'blank';
-    });
-
-    els.gameForm.addEventListener('submit', async (e) => { e.preventDefault(); await saveGameFromForm(); });
-    els.moduleForm.addEventListener('submit', (e) => { e.preventDefault(); saveModuleFromForm(); });
-    els.entryForm.addEventListener('submit', (e) => { e.preventDefault(); saveEntryFromForm(); });
-    els.themeForm.addEventListener('submit', (e) => { e.preventDefault(); saveTheme(); });
-    els.templateForm.addEventListener('submit', (e) => { e.preventDefault(); saveTemplateFromForm(); });
-    els.addTemplateModuleBtn.addEventListener('click', () => appendTemplateModuleRow());
-
-    document.addEventListener('click', handleActionClick);
-  }
-
-  function handleActionClick(e) {
-    const btn = e.target.closest('[data-action]');
-    if (!btn) return;
-    const { action, id, gameId, moduleId, entryId, templateId } = btn.dataset;
-    if (action === 'open-category') switchView({ type: 'category', id });
-    if (action === 'open-game') openGame(id);
-    if (action === 'toggle-favorite') toggleFavorite(id);
-    if (action === 'edit-game') openGameModal(id);
-    if (action === 'delete-game') deleteGame(id);
-    if (action === 'add-module') openModuleModal(gameId);
-    if (action === 'edit-module') openModuleModal(gameId, moduleId);
-    if (action === 'delete-module') deleteModule(moduleId);
-    if (action === 'move-module-up') moveModule(moduleId, -1);
-    if (action === 'move-module-down') moveModule(moduleId, 1);
-    if (action === 'add-entry') openEntryModal(moduleId);
-    if (action === 'edit-entry') openEntryModal(moduleId, entryId);
-    if (action === 'delete-entry') deleteEntry(entryId);
-    if (action === 'toggle-check') toggleChecklist(entryId);
-    if (action === 'edit-template') openTemplateModal(templateId);
-    if (action === 'delete-template') deleteTemplate(templateId);
-    if (action === 'clone-template') cloneTemplate(templateId);
-    if (action === 'use-template') openGameModal('', templateId);
-  }
-
-  function switchView(view) {
-    currentView = view;
-    closeSidebar();
-    render();
-  }
-
-  function openSidebar() { els.sidebar.classList.remove('closed'); els.overlay.classList.remove('hidden'); }
-  function closeSidebar() { els.sidebar.classList.add('closed'); els.overlay.classList.add('hidden'); }
-  function closeDialog(id) { const el = document.getElementById(id); if (el?.open) el.close(); }
-
-  function render() {
-    renderSidebarCategories();
-    renderViews();
-    saveState();
-  }
-
-  function renderSidebarCategories() {
-    els.sidebarCategories.innerHTML = state.categories.map(cat => `<button class="nav-btn" data-action="open-category" data-id="${cat.id}">${cat.icon} ${escapeHtml(cat.name)}</button>`).join('');
-  }
-
-  function renderViews() {
-    hideAllViews();
-    highlightNav();
-    if (searchQuery) return renderSearch();
-    if (currentView.type === 'home') return renderHome();
-    if (currentView.type === 'favorites') return renderFavorites();
-    if (currentView.type === 'templates') return renderTemplates();
-    if (currentView.type === 'category') return renderCategory(currentView.id);
-    if (currentView.type === 'game') return renderGame(currentView.id);
-    renderHome();
-  }
-
-  function hideAllViews() { [els.homeView, els.categoryView, els.gameView, els.favoritesView, els.templatesView].forEach(v => v.classList.add('hidden')); }
-  function highlightNav() {
-    document.querySelectorAll('[data-nav-view]').forEach(btn => btn.classList.toggle('active', btn.dataset.navView === currentView.type));
-  }
-
-  function renderHome() {
-    els.viewTitle.textContent = 'Game Codex';
-    els.homeView.classList.remove('hidden');
-    const recent = state.recentGameIds.map(id => getGame(id)).filter(Boolean).slice(0, 3);
-    const kpis = [
-      ['Tracked Games', state.games.length],
-      ['Custom Templates', state.templates.filter(t => !t.system).length],
-      ['Favorites', state.favoriteGameIds.length],
-      ['Entries', state.entries.length]
-    ];
-    els.homeView.innerHTML = `
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Dashboard</div><h3>Royal command center</h3></div></div>
-        <div class="kpi-grid">${kpis.map(([l,v]) => `<div class="kpi"><div class="eyebrow">${l}</div><h3>${v}</h3></div>`).join('')}</div>
-      </section>
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Quick Access</div><h3>Recent 3</h3></div></div>
-        <div class="recent-grid">${recent.length ? recent.map(renderRecentCard).join('') : empty('Open some games and they show up here.')}</div>
-      </section>
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Categories</div><h3>Track what matters</h3></div></div>
-        <div class="categories-grid">${state.categories.map(renderCategoryCard).join('')}</div>
-      </section>
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Templates</div><h3>Launch faster</h3></div><button class="secondary-btn" data-action="use-template" data-template-id="blank">Use Blank</button></div>
-        <div class="templates-grid">${allTemplates().slice(0, 4).map(renderTemplateCard).join('')}</div>
-      </section>`;
-  }
-
-  function renderFavorites() {
-    els.viewTitle.textContent = 'Favorites';
-    els.favoritesView.classList.remove('hidden');
-    const games = state.favoriteGameIds.map(id => getGame(id)).filter(Boolean);
-    els.favoritesView.innerHTML = `<section class="section"><div class="section-head"><div><div class="eyebrow">Pinned</div><h3>Favorite games</h3></div></div><div class="favorites-grid">${games.length ? games.map(renderGameCard).join('') : empty('No favorites yet. Star the ones you actually care about.')}</div></section>`;
-  }
-
-  function renderTemplates() {
-    els.viewTitle.textContent = 'Templates';
-    els.templatesView.classList.remove('hidden');
-    const templates = allTemplates();
-    els.templatesView.innerHTML = `
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Template Forge</div><h3>System + custom templates</h3></div><button class="primary-btn" id="inlineTemplateBtn">+ New Template</button></div>
-        <div class="templates-grid">${templates.map(renderTemplateCard).join('')}</div>
-      </section>`;
-    document.getElementById('inlineTemplateBtn').addEventListener('click', () => openTemplateModal());
-  }
-
-  function renderCategory(categoryId) {
-    const cat = state.categories.find(c => c.id === categoryId);
-    if (!cat) return renderHome();
-    els.viewTitle.textContent = cat.name;
-    els.categoryView.classList.remove('hidden');
-    const games = state.games.filter(g => g.categoryId === categoryId);
-    els.categoryView.innerHTML = `<section class="section"><div class="section-head"><div><div class="eyebrow">${cat.icon} Category</div><h3>${escapeHtml(cat.name)}</h3></div><button class="primary-btn" data-action="open-category" data-id="${categoryId}" disabled>${games.length} games</button></div><div class="section-grid">${games.length ? games.map(renderGameCard).join('') : empty('No games here yet. Add one and use the category default template.')}</div></section>`;
-  }
-
-  function renderGame(gameId) {
-    const game = getGame(gameId);
-    if (!game) return renderHome();
-    els.viewTitle.textContent = game.title;
-    els.gameView.classList.remove('hidden');
-    const category = state.categories.find(c => c.id === game.categoryId);
-    const modules = getModulesForGame(game.id);
-    els.gameView.innerHTML = `
-      <section class="section game-card">
-        <div class="game-banner ${game.banner ? '' : 'empty'}" style="${game.banner ? `background-image:url('${escapeAttribute(game.banner)}')` : ''}">
-          ${game.banner ? `<div class="banner-overlay"><div class="eyebrow">${escapeHtml(category?.name || 'Game')}</div><h3>${escapeHtml(game.title)}</h3></div>` : '<div>Upload a banner or use a Steam App ID</div>'}
+function renderHome(){
+  const search = state.search.toLowerCase();
+  const filteredGames = state.data.games.filter(g => !search || g.title.toLowerCase().includes(search) || profilesForGame(g.id).some(p=>p.name.toLowerCase().includes(search)));
+  const home = el('#homeView');
+  home.innerHTML = `
+    <section class="hero">
+      <div class="hero-banner"></div>
+      <div class="grid two">
+        <div>
+          <div class="eyebrow">v5 direction</div>
+          <h3>Profiles + custom modules are in.</h3>
+          <p class="muted">Games now hold multiple worlds, runs, saves, or playthroughs. Profiles hold the actual tracking. Custom fields and custom tables cover weird plugin or build-specific stuff.</p>
         </div>
-        <div class="split-row"><div><div class="eyebrow">${escapeHtml(category?.name || 'Unknown')}</div><h2>${escapeHtml(game.title)}</h2><div class="tag-row"><span class="chip">${escapeHtml(game.status)}</span>${game.steamAppId ? `<span class="chip">Steam ${escapeHtml(game.steamAppId)}</span>` : ''}${game.templateId ? `<span class="chip">${escapeHtml(getTemplate(game.templateId)?.name || 'Template')}</span>` : ''}</div></div><div class="inline-actions"><button class="icon-btn" data-action="toggle-favorite" data-id="${game.id}">${isFavorite(game.id) ? '★' : '☆'}</button><button class="secondary-btn" data-action="edit-game" data-id="${game.id}">Edit Game</button><button class="danger-btn" data-action="delete-game" data-id="${game.id}">Delete Game</button></div></div>
-      </section>
-      <section class="section">
-        <div class="section-head"><div><div class="eyebrow">Modules</div><h3>Game brain</h3></div><button class="primary-btn" data-action="add-module" data-game-id="${game.id}">+ Add Module</button></div>
-        <div class="module-stack">${modules.length ? modules.map(m => renderModuleCard(m, game.id)).join('') : empty('No modules yet. Add one or rebuild the game from a better template.')}</div>
-      </section>`;
+        <div class="actions">
+          <button class="primary-btn" onclick="openGameModal()">+ Add Game</button>
+        </div>
+      </div>
+    </section>
+    <section class="grid">
+      <div class="card">
+        <div class="card-head"><div><div class="eyebrow">Fast access</div><h3>Recent 3</h3></div></div>
+        <div class="recent-row">${recentGames().map(gameCard).join('') || '<div class="empty">No games yet.</div>'}</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="eyebrow">Your lanes</div><h3>Categories</h3></div></div>
+        <div class="grid three">${CATEGORIES.map(cat => {
+          const count = state.data.games.filter(g=>g.categoryId===cat.id).length;
+          return `<div class="card clickable" onclick="setView('category','${cat.id}')"><div class="entry-title">${cat.icon} ${cat.name}</div><div class="muted small">${count} games</div></div>`;
+        }).join('')}</div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div><div class="eyebrow">Matches</div><h3>${search ? 'Search results' : 'All games'}</h3></div></div>
+        <div class="grid three">${filteredGames.map(gameCard).join('') || '<div class="empty">Nothing matched that search.</div>'}</div>
+      </div>
+    </section>`;
+}
+
+function gameCard(game){
+  const cat = categoryById(game.categoryId);
+  const banner = gameBanner(game);
+  return `<div class="card clickable" onclick="openGame('${game.id}')">
+    <div class="hero-banner" style="height:92px;${banner ? `background-image:url('${banner}')` : ''}"></div>
+    <div class="entry-title">${game.title}</div>
+    <div class="badges"><span class="badge">${cat?.icon || '🎮'} ${cat?.name || ''}</span><span class="badge">${formatStatus(game.status)}</span>${game.favorite ? '<span class="badge">⭐ favorite</span>' : ''}</div>
+  </div>`;
+}
+
+function renderFavorites(){
+  el('#favoritesView').innerHTML = `<div class="grid three">${favoriteGames().map(gameCard).join('') || '<div class="empty">No favorites yet.</div>'}</div>`;
+}
+
+function renderCategory(){
+  const cat = categoryById(state.view.id);
+  const games = state.data.games.filter(g => g.categoryId === state.view.id);
+  el('#categoryView').innerHTML = `<div class="card"><div class="card-head"><div><div class="eyebrow">${cat?.icon || ''}</div><h3>${cat?.name || 'Category'}</h3></div><button class="primary-btn" onclick="openGameModal(null,'${state.view.id}')">+ Add Game</button></div><div class="grid three">${games.map(gameCard).join('') || '<div class="empty">No games here yet.</div>'}</div></div>`;
+}
+
+function renderGame(){
+  const game = getGame(state.view.id); if(!game) return;
+  game.lastViewed = now(); saveData();
+  const profiles = profilesForGame(game.id);
+  const cat = categoryById(game.categoryId);
+  const banner = gameBanner(game);
+  el('#gameView').innerHTML = `
+    <section class="hero">
+      <div class="hero-banner" style="${banner ? `background-image:url('${banner}')` : ''}"></div>
+      <div class="card-head"><div><div class="eyebrow">${cat?.icon || ''} ${cat?.name || ''}</div><h3>${game.title}</h3></div><div class="actions"><button class="secondary-btn" onclick="toggleFavorite('${game.id}')">${game.favorite ? '★ Unfavorite' : '☆ Favorite'}</button><button class="secondary-btn" onclick="openGameModal('${game.id}')">Edit Game</button><button class="ghost-btn" onclick="deleteGame('${game.id}')">Delete Game</button></div></div>
+      <div class="badges"><span class="badge">${formatStatus(game.status)}</span>${game.steamAppId ? `<span class="badge">Steam ${game.steamAppId}</span>` : ''}</div>
+    </section>
+    <section class="card">
+      <div class="card-head"><div><div class="eyebrow">Profiles</div><h3>Worlds, runs, saves, builds</h3></div><button class="primary-btn" onclick="openProfileModal(null,'${game.id}')">+ Add Profile</button></div>
+      <div class="grid two">${profiles.map(profileCard).join('') || '<div class="empty">No profiles yet. Add one and track that specific world/playthrough instead of polluting the whole game page.</div>'}</div>
+    </section>`;
+}
+
+function profileCard(profile){
+  return `<div class="profile-card">
+    <div class="card-head"><div><div class="entry-title">${profile.name}</div><div class="muted small">${profile.type} · ${profile.status}${profile.tag ? ` · ${profile.tag}` : ''}</div></div><button class="primary-btn" onclick="event.stopPropagation(); openProfile('${profile.id}')">Open</button></div>
+    <div class="row-actions"><button class="secondary-btn" onclick="openProfileModal('${profile.id}')">Edit</button><button class="ghost-btn" onclick="deleteProfile('${profile.id}')">Delete</button></div>
+  </div>`;
+}
+
+function renderProfile(){
+  const profile = getProfile(state.view.id); if(!profile) return;
+  const game = getGame(profile.gameId); profile.lastViewed = now(); game.lastViewed = now(); saveData();
+  const modules = modulesForProfile(profile.id);
+  el('#profileView').innerHTML = `
+    <section class="hero">
+      <div class="card-head"><div><div class="eyebrow">${game.title}</div><h3>${profile.name}</h3></div><div class="actions"><button class="secondary-btn" onclick="setView('game','${game.id}')">← Back to Game</button><button class="secondary-btn" onclick="openProfileModal('${profile.id}')">Edit Profile</button><button class="primary-btn" onclick="openModuleModal(null,'${profile.id}')">+ Add Module</button></div></div>
+      <div class="badges"><span class="badge">${profile.type}</span><span class="badge">${profile.status}</span>${profile.tag ? `<span class="badge">${profile.tag}</span>` : ''}</div>
+    </section>
+    ${modules.map(renderModule).join('') || '<div class="empty">No modules yet. Add notes, checklists, custom fields, or a custom table.</div>'}`;
+}
+
+function renderModule(module){
+  const header = `<div class="module-head"><div><div class="eyebrow">${module.type}</div><h4>${module.icon || '📘'} ${module.title}</h4></div><div class="module-actions"><button class="secondary-btn" onclick="openModuleModal('${module.id}')">Edit</button><button class="ghost-btn" onclick="moveModule('${module.id}',-1)">↑</button><button class="ghost-btn" onclick="moveModule('${module.id}',1)">↓</button><button class="ghost-btn" onclick="deleteModule('${module.id}')">Delete</button></div></div>`;
+
+  if(module.type === 'notes'){
+    const entries = entriesForModule(module.id);
+    return `<section class="module">${header}<div class="module-actions"><button class="primary-btn" onclick="openEntryModal(null,'${module.id}')">+ Add Entry</button></div>${entries.map(e => `<div class="entry-card"><div class="card-head"><div><div class="entry-title">${e.title}</div><div class="muted small">${e.content || 'No details yet.'}</div></div><div class="row-actions"><button class="secondary-btn" onclick="openEntryModal('${e.id}','${module.id}')">Edit</button><button class="ghost-btn" onclick="deleteEntry('${e.id}')">Delete</button></div></div></div>`).join('') || '<div class="empty">No entries yet.</div>'}</section>`;
   }
 
-  function renderSearch() {
-    els.viewTitle.textContent = `Search: ${searchQuery}`;
-    els.homeView.classList.remove('hidden');
-    const matchedGames = state.games.filter(g => `${g.title} ${g.status}`.toLowerCase().includes(searchQuery));
-    const matchedModules = state.modules.filter(m => `${m.title} ${m.type}`.toLowerCase().includes(searchQuery));
-    const matchedEntries = state.entries.filter(en => `${en.title} ${en.content || ''}`.toLowerCase().includes(searchQuery));
-    els.homeView.innerHTML = `
-      <section class="section"><div class="section-head"><div><div class="eyebrow">Search Results</div><h3>${searchQuery}</h3></div></div>
-      <div class="search-grid">
-        ${matchedGames.map(g => `<div class="search-card"><div class="eyebrow">Game</div><h4>${escapeHtml(g.title)}</h4><div class="muted">${escapeHtml(g.status)}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${g.id}">Open</button></div></div>`).join('')}
-        ${matchedModules.map(m => `<div class="search-card"><div class="eyebrow">Module</div><h4>${escapeHtml(m.title)}</h4><div class="muted">${escapeHtml(getGame(m.gameId)?.title || '')}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${m.gameId}">Open Game</button></div></div>`).join('')}
-        ${matchedEntries.map(en => `<div class="search-card"><div class="eyebrow">Entry</div><h4>${escapeHtml(en.title)}</h4><div class="muted">${escapeHtml(getModule(en.moduleId)?.title || '')}</div><div class="tiny">${escapeHtml((en.content || '').slice(0, 120))}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${getModule(en.moduleId)?.gameId || ''}">Open Game</button></div></div>`).join('')}
-        ${(!matchedGames.length && !matchedModules.length && !matchedEntries.length) ? empty('Nothing matched. Your search may just suck, or the data is not there yet.') : ''}
-      </div></section>`;
+  if(module.type === 'checklist'){
+    const entries = entriesForModule(module.id);
+    return `<section class="module">${header}<div class="module-actions"><button class="primary-btn" onclick="openEntryModal(null,'${module.id}')">+ Add Item</button></div>${entries.map(e => `<div class="entry-card check-item"><div class="left"><input type="checkbox" ${e.checked ? 'checked' : ''} onchange="toggleCheck('${e.id}')" /><div class="${e.checked ? 'strike' : ''}">${e.title}${e.content ? `<div class='muted small'>${e.content}</div>` : ''}</div></div><div class="row-actions"><button class="secondary-btn" onclick="openEntryModal('${e.id}','${module.id}')">Edit</button><button class="ghost-btn" onclick="deleteEntry('${e.id}')">Delete</button></div></div>`).join('') || '<div class="empty">No checklist items yet.</div>'}</section>`;
   }
 
-  function renderRecentCard(game) {
-    return `<button class="recent-card" data-action="open-game" data-id="${game.id}"><div class="eyebrow">Recent</div><h4>${escapeHtml(game.title)}</h4><div class="muted">${escapeHtml(game.status)}</div></button>`;
-  }
-  function renderCategoryCard(cat) {
-    const count = state.games.filter(g => g.categoryId === cat.id).length;
-    return `<button class="category-card" data-action="open-category" data-id="${cat.id}"><div class="eyebrow">${cat.icon} Category</div><h4>${escapeHtml(cat.name)}</h4><div class="muted">${count} tracked</div></button>`;
-  }
-  function renderGameCard(game) {
-    const category = state.categories.find(c => c.id === game.categoryId);
-    return `<div class="game-card"><div class="eyebrow">${escapeHtml(category?.name || '')}</div><h4>${escapeHtml(game.title)}</h4><div class="tag-row"><span class="chip">${escapeHtml(game.status)}</span>${isFavorite(game.id) ? '<span class="chip">favorite</span>' : ''}</div><div class="inline-actions"><button class="secondary-btn" data-action="open-game" data-id="${game.id}">Open</button><button class="icon-btn" data-action="toggle-favorite" data-id="${game.id}">${isFavorite(game.id) ? '★' : '☆'}</button></div></div>`;
-  }
-  function renderTemplateCard(template) {
-    return `<div class="template-card"><div class="eyebrow">${template.system ? 'System Template' : 'Custom Template'}</div><h4>${escapeHtml(template.name)}</h4><div class="muted">${escapeHtml(template.description || 'No description')}</div><div class="tag-row">${template.modules.slice(0,4).map(m => `<span class="chip">${escapeHtml(m.title)}</span>`).join('')}</div><div class="inline-actions"><button class="secondary-btn" data-action="use-template" data-template-id="${template.id}">Use</button><button class="secondary-btn" data-action="clone-template" data-template-id="${template.id}">Clone</button><button class="secondary-btn" data-action="edit-template" data-template-id="${template.id}">Edit</button>${template.system ? '' : `<button class="danger-btn" data-action="delete-template" data-template-id="${template.id}">Delete</button>`}</div></div>`;
+  if(module.type === 'custom'){
+    return `<section class="module">${header}<div class="data-grid">${(module.fields || []).map(field => renderCustomField(module, field)).join('') || '<div class="empty">No fields defined.</div>'}</div></section>`;
   }
 
-  function renderModuleCard(module, gameId) {
-    const entries = getEntriesForModule(module.id);
-    return `<div class="module-card"><div class="module-head"><div><div class="eyebrow">${escapeHtml(module.type)}</div><h4>${escapeHtml(module.icon || '📜')} ${escapeHtml(module.title)}</h4></div><div class="module-actions"><button class="secondary-btn" data-action="move-module-up" data-module-id="${module.id}">↑</button><button class="secondary-btn" data-action="move-module-down" data-module-id="${module.id}">↓</button><button class="secondary-btn" data-action="edit-module" data-game-id="${gameId}" data-module-id="${module.id}">Edit</button><button class="danger-btn" data-action="delete-module" data-module-id="${module.id}">Delete</button></div></div><div class="entry-list">${entries.length ? entries.map(en => renderEntry(module, en)).join('') : empty('No entries yet.')}</div><div class="inline-actions"><button class="primary-btn" data-action="add-entry" data-module-id="${module.id}">+ Add Entry</button></div></div>`;
+  if(module.type === 'table'){
+    const cols = module.columns || [];
+    return `<section class="module">${header}<div class="module-actions"><button class="primary-btn" onclick="openTableRowModal('${module.id}')">+ Add Row</button></div><div class="table-wrap">${cols.length ? `<table><thead><tr>${cols.map(c=>`<th>${c.label}</th>`).join('')}<th>Actions</th></tr></thead><tbody>${(module.rows||[]).map(row => `<tr>${cols.map((c,i)=>`<td>${renderRowCell(row.values?.[i], c)}</td>`).join('')}<td><div class='row-actions'><button class='secondary-btn' onclick="openTableRowModal('${module.id}','${row.id}')">Edit</button><button class='ghost-btn' onclick="deleteTableRow('${module.id}','${row.id}')">Delete</button></div></td></tr>`).join('') || `<tr><td colspan="${cols.length+1}">No rows yet.</td></tr>`}</tbody></table>` : '<div class="empty">No columns defined.</div>'}</div></section>`;
   }
+  return `<section class="module">${header}</section>`;
+}
 
-  function renderEntry(module, entry) {
-    const check = module.type === 'checklist';
-    return `<div class="entry ${check ? 'check' : ''} ${entry.completed ? 'complete' : ''}">${check ? `<input type="checkbox" ${entry.completed ? 'checked' : ''} data-action="toggle-check" data-entry-id="${entry.id}" />` : ''}<div><strong>${escapeHtml(entry.title)}</strong>${entry.content ? `<div class="entry-copy">${escapeHtml(entry.content)}</div>` : ''}<div class="entry-actions"><button class="secondary-btn" data-action="edit-entry" data-module-id="${module.id}" data-entry-id="${entry.id}">Edit</button><button class="danger-btn" data-action="delete-entry" data-entry-id="${entry.id}">Delete</button></div></div></div>`;
+function renderRowCell(value, col){
+  if(col.type === 'toggle') return value ? 'Yes' : 'No';
+  return value ?? '';
+}
+
+function renderCustomField(module, field){
+  const value = (module.values || {})[field.id];
+  if(field.type === 'text' || field.type === 'number'){
+    return `<label class="field-card"><span>${field.label}</span><input type="${field.type}" value="${escapeAttr(value ?? '')}" onchange="updateCustomField('${module.id}','${field.id}',this.value)" /></label>`;
   }
-
-  function empty(text) { return `<div class="empty-state">${escapeHtml(text)}</div>`; }
-
-  function openGame(gameId) {
-    const game = getGame(gameId);
-    if (!game) return;
-    touchRecent(gameId);
-    currentView = { type: 'game', id: gameId };
-    render();
+  if(field.type === 'select'){
+    return `<label class="field-card"><span>${field.label}</span><select onchange="updateCustomField('${module.id}','${field.id}',this.value)">${(field.options||[]).map(opt=>`<option value="${escapeAttr(opt)}" ${opt===value ? 'selected' : ''}>${opt}</option>`).join('')}</select></label>`;
   }
-
-  function touchRecent(gameId) {
-    state.recentGameIds = [gameId, ...state.recentGameIds.filter(id => id !== gameId)].slice(0,3);
+  if(field.type === 'toggle'){
+    return `<label class="field-card"><span>${field.label}</span><select onchange="updateCustomField('${module.id}','${field.id}',this.value === 'true')"><option value="false" ${value ? '' : 'selected'}>No</option><option value="true" ${value ? 'selected' : ''}>Yes</option></select></label>`;
   }
+  return `<div class="field-card">Unsupported field</div>`;
+}
 
-  function isFavorite(gameId) { return state.favoriteGameIds.includes(gameId); }
-  function toggleFavorite(gameId) {
-    state.favoriteGameIds = isFavorite(gameId) ? state.favoriteGameIds.filter(id => id !== gameId) : [gameId, ...state.favoriteGameIds];
-    render();
-  }
+function escapeAttr(v){ return String(v).replaceAll('"','&quot;'); }
 
-  function openGameModal(gameId = '', forcedTemplateId = '') {
-    syncCategorySelect();
-    syncTemplateSelects();
-    els.gameForm.reset();
-    els.gameEditId.value = '';
-    els.bannerFileInput.value = '';
-    els.gameModalTitle.textContent = gameId ? 'Edit Game' : 'Add Game';
-    if (gameId) {
-      const game = getGame(gameId);
-      if (!game) return;
-      els.gameEditId.value = game.id;
-      els.gameTitleInput.value = game.title;
-      els.gameStatusSelect.value = game.status;
-      els.gameCategorySelect.value = game.categoryId;
-      els.gameTemplateSelect.value = game.templateId || 'blank';
-      els.steamAppIdInput.value = game.steamAppId || '';
-      els.bannerUrlInput.value = game.banner && !game.banner.startsWith('data:') ? game.banner : '';
+function render(){
+  renderSidebar();
+  renderHome();
+  renderFavorites();
+  if(state.view.name === 'category') renderCategory();
+  if(state.view.name === 'game') renderGame();
+  if(state.view.name === 'profile') renderProfile();
+}
+
+function populateGameCategories(selectedId){
+  el('#gameCategoryInput').innerHTML = CATEGORIES.map(c => `<option value="${c.id}" ${c.id===selectedId ? 'selected' : ''}>${c.name}</option>`).join('');
+}
+
+function openDialog(id){ el('#'+id).showModal(); }
+function closeDialog(id){ el('#'+id).close(); }
+window.setView = setView;
+window.openGame = (id) => setView('game', id);
+window.openProfile = (id) => setView('profile', id);
+
+window.openGameModal = (gameId = null, categoryId = null) => {
+  const game = gameId ? getGame(gameId) : null;
+  el('#gameModalTitle').textContent = game ? 'Edit Game' : 'Add Game';
+  el('#gameEditId').value = game?.id || '';
+  el('#gameTitleInput').value = game?.title || '';
+  el('#gameStatusInput').value = game?.status || 'active';
+  populateGameCategories(game?.categoryId || categoryId || CATEGORIES[0].id);
+  el('#gameBannerInput').value = game?.banner || '';
+  el('#gameFavoriteInput').value = String(!!game?.favorite);
+  el('#gameSteamInput').value = game?.steamAppId || '';
+  openDialog('gameModal');
+};
+
+window.openProfileModal = (profileId = null, gameId = null) => {
+  const profile = profileId ? getProfile(profileId) : null;
+  el('#profileModalTitle').textContent = profile ? 'Edit Profile' : 'Add Profile';
+  el('#profileEditId').value = profile?.id || '';
+  el('#profileGameId').value = profile?.gameId || gameId || state.view.id || '';
+  el('#profileNameInput').value = profile?.name || '';
+  el('#profileTypeInput').value = profile?.type || 'world';
+  el('#profileStatusInput').value = profile?.status || 'active';
+  el('#profileTagInput').value = profile?.tag || '';
+  openDialog('profileModal');
+};
+
+function newBuilderRow(type='field', data={}){
+  const row = document.createElement('div');
+  row.className = 'builder-row';
+  row.innerHTML = type === 'field' ? `
+    <div class="form-grid two">
+      <label><span>Label</span><input class="builder-label" type="text" value="${escapeAttr(data.label || '')}" required /></label>
+      <label><span>Type</span><select class="builder-type"><option value="text">Text</option><option value="number">Number</option><option value="select">Dropdown</option><option value="toggle">Toggle</option></select></label>
+    </div>
+    <label class="builder-options-wrap"><span>Options (comma separated for dropdown)</span><input class="builder-options" type="text" value="${escapeAttr((data.options||[]).join(', '))}" /></label>
+    <div class="row-actions"><button type="button" class="ghost-btn remove-builder">Remove</button></div>
+  ` : `
+    <div class="form-grid two">
+      <label><span>Column label</span><input class="builder-label" type="text" value="${escapeAttr(data.label || '')}" required /></label>
+      <label><span>Type</span><select class="builder-type"><option value="text">Text</option><option value="number">Number</option><option value="select">Dropdown</option><option value="toggle">Toggle</option></select></label>
+    </div>
+    <label class="builder-options-wrap"><span>Options (comma separated for dropdown)</span><input class="builder-options" type="text" value="${escapeAttr((data.options||[]).join(', '))}" /></label>
+    <div class="row-actions"><button type="button" class="ghost-btn remove-builder">Remove</button></div>
+  `;
+  row.querySelector('.builder-type').value = data.type || 'text';
+  row.querySelector('.builder-type').onchange = (e) => {
+    row.querySelector('.builder-options-wrap').style.display = e.target.value === 'select' ? 'grid' : 'none';
+  };
+  row.querySelector('.remove-builder').onclick = () => row.remove();
+  row.querySelector('.builder-options-wrap').style.display = (data.type || 'text') === 'select' ? 'grid' : 'none';
+  return row;
+}
+
+window.openModuleModal = (moduleId = null, profileId = null) => {
+  const mod = moduleId ? state.data.modules.find(m=>m.id===moduleId) : null;
+  el('#moduleModalTitle').textContent = mod ? 'Edit Module' : 'Add Module';
+  el('#moduleEditId').value = mod?.id || '';
+  el('#moduleProfileId').value = mod?.profileId || profileId || state.view.id || '';
+  el('#moduleTitleInput').value = mod?.title || '';
+  el('#moduleTypeInput').value = mod?.type || 'notes';
+  el('#moduleIconInput').value = mod?.icon || '';
+  el('#fieldBuilderList').innerHTML = '';
+  el('#columnBuilderList').innerHTML = '';
+  (mod?.fields || []).forEach(f => el('#fieldBuilderList').appendChild(newBuilderRow('field', f)));
+  (mod?.columns || []).forEach(c => el('#columnBuilderList').appendChild(newBuilderRow('col', c)));
+  toggleModuleBuilders();
+  openDialog('moduleModal');
+};
+
+window.openEntryModal = (entryId = null, moduleId = null) => {
+  const entry = entryId ? state.data.entries.find(e=>e.id===entryId) : null;
+  el('#entryModalTitle').textContent = entry ? 'Edit Entry' : 'Add Entry';
+  el('#entryEditId').value = entry?.id || '';
+  el('#entryModuleId').value = entry?.moduleId || moduleId;
+  el('#entryTitleInput').value = entry?.title || '';
+  el('#entryContentInput').value = entry?.content || '';
+  openDialog('entryModal');
+};
+
+window.openTableRowModal = (moduleId, rowId = null) => {
+  const mod = state.data.modules.find(m=>m.id===moduleId);
+  const row = rowId ? (mod.rows || []).find(r=>r.id===rowId) : null;
+  el('#tableRowTitle').textContent = row ? 'Edit Row' : 'Add Row';
+  el('#tableRowEditId').value = row?.id || '';
+  el('#tableRowModuleId').value = moduleId;
+  const wrap = el('#tableRowFields');
+  wrap.innerHTML = '';
+  (mod.columns || []).forEach((col, i) => {
+    const value = row?.values?.[i];
+    const label = document.createElement('label');
+    label.className = 'field-card';
+    label.innerHTML = `<span>${col.label}</span>`;
+    let input;
+    if(col.type === 'select'){
+      input = document.createElement('select');
+      input.innerHTML = (col.options || []).map(opt => `<option value="${escapeAttr(opt)}" ${opt===value ? 'selected' : ''}>${opt}</option>`).join('');
+    } else if(col.type === 'toggle'){
+      input = document.createElement('select');
+      input.innerHTML = `<option value="false" ${value ? '' : 'selected'}>No</option><option value="true" ${value ? 'selected' : ''}>Yes</option>`;
     } else {
-      const firstCat = state.categories[0];
-      els.gameCategorySelect.value = firstCat?.id || '';
-      els.gameTemplateSelect.value = forcedTemplateId || firstCat?.defaultTemplateId || 'blank';
+      input = document.createElement('input');
+      input.type = col.type === 'number' ? 'number' : 'text';
+      input.value = value ?? '';
     }
-    els.gameModal.showModal();
+    input.dataset.colIndex = i;
+    input.dataset.colType = col.type;
+    label.appendChild(input);
+    wrap.appendChild(label);
+  });
+  openDialog('tableRowModal');
+};
+
+function toggleModuleBuilders(){
+  const type = el('#moduleTypeInput').value;
+  el('#customFieldBuilderSection').classList.toggle('hidden', type !== 'custom');
+  el('#tableBuilderSection').classList.toggle('hidden', type !== 'table');
+}
+
+window.toggleFavorite = (gameId) => {
+  const game = getGame(gameId); game.favorite = !game.favorite; saveData(); render();
+};
+window.deleteGame = (gameId) => {
+  if(!confirm('Delete this game and all profiles/modules/entries under it?')) return;
+  const profileIds = state.data.profiles.filter(p=>p.gameId===gameId).map(p=>p.id);
+  const moduleIds = state.data.modules.filter(m=>profileIds.includes(m.profileId)).map(m=>m.id);
+  state.data.games = state.data.games.filter(g=>g.id!==gameId);
+  state.data.profiles = state.data.profiles.filter(p=>p.gameId!==gameId);
+  state.data.modules = state.data.modules.filter(m=>!profileIds.includes(m.profileId));
+  state.data.entries = state.data.entries.filter(e=>!moduleIds.includes(e.moduleId));
+  saveData(); setView('home');
+};
+window.deleteProfile = (profileId) => {
+  if(!confirm('Delete this profile and its modules?')) return;
+  const moduleIds = state.data.modules.filter(m=>m.profileId===profileId).map(m=>m.id);
+  state.data.profiles = state.data.profiles.filter(p=>p.id!==profileId);
+  state.data.modules = state.data.modules.filter(m=>m.profileId!==profileId);
+  state.data.entries = state.data.entries.filter(e=>!moduleIds.includes(e.moduleId));
+  saveData(); render();
+};
+window.deleteModule = (moduleId) => {
+  if(!confirm('Delete this module?')) return;
+  state.data.modules = state.data.modules.filter(m=>m.id!==moduleId);
+  state.data.entries = state.data.entries.filter(e=>e.moduleId!==moduleId);
+  saveData(); render();
+};
+window.deleteEntry = (entryId) => { state.data.entries = state.data.entries.filter(e=>e.id!==entryId); saveData(); render(); };
+window.toggleCheck = (entryId) => { const e = state.data.entries.find(x=>x.id===entryId); e.checked = !e.checked; saveData(); render(); };
+window.moveModule = (moduleId, dir) => {
+  const modules = modulesForProfile(state.data.modules.find(m=>m.id===moduleId).profileId);
+  const idx = modules.findIndex(m=>m.id===moduleId); const swap = modules[idx+dir]; if(!swap) return;
+  const cur = modules[idx]; [cur.order, swap.order] = [swap.order, cur.order]; saveData(); render();
+};
+window.updateCustomField = (moduleId, fieldId, value) => {
+  const mod = state.data.modules.find(m=>m.id===moduleId); if(!mod.values) mod.values = {};
+  mod.values[fieldId] = value; saveData();
+};
+window.deleteTableRow = (moduleId,rowId) => { const mod = state.data.modules.find(m=>m.id===moduleId); mod.rows = (mod.rows||[]).filter(r=>r.id!==rowId); saveData(); render(); };
+
+el('#gameForm').onsubmit = (e) => {
+  e.preventDefault();
+  const gameId = el('#gameEditId').value;
+  const payload = {
+    title: el('#gameTitleInput').value.trim(),
+    status: el('#gameStatusInput').value,
+    categoryId: el('#gameCategoryInput').value,
+    banner: el('#gameBannerInput').value.trim(),
+    favorite: el('#gameFavoriteInput').value === 'true',
+    steamAppId: el('#gameSteamInput').value.trim(),
+    lastViewed: now(),
+  };
+  if(gameId){ Object.assign(getGame(gameId), payload); }
+  else state.data.games.push({ id: id('game'), ...payload });
+  saveData(); closeDialog('gameModal'); render();
+};
+
+el('#profileForm').onsubmit = (e) => {
+  e.preventDefault();
+  const profileId = el('#profileEditId').value;
+  const payload = {
+    gameId: el('#profileGameId').value,
+    name: el('#profileNameInput').value.trim(),
+    type: el('#profileTypeInput').value,
+    status: el('#profileStatusInput').value,
+    tag: el('#profileTagInput').value.trim(),
+    lastViewed: now(),
+  };
+  if(profileId){ Object.assign(getProfile(profileId), payload); }
+  else state.data.profiles.push({ id: id('profile'), ...payload });
+  saveData(); closeDialog('profileModal'); render();
+};
+
+el('#moduleForm').onsubmit = (e) => {
+  e.preventDefault();
+  const modId = el('#moduleEditId').value;
+  const type = el('#moduleTypeInput').value;
+  const base = {
+    profileId: el('#moduleProfileId').value,
+    title: el('#moduleTitleInput').value.trim(),
+    type,
+    icon: el('#moduleIconInput').value.trim(),
+  };
+  let extra = {};
+  if(type === 'custom'){
+    extra.fields = [...el('#fieldBuilderList').children].map(row => ({
+      id: id('field'),
+      label: row.querySelector('.builder-label').value.trim(),
+      type: row.querySelector('.builder-type').value,
+      options: row.querySelector('.builder-type').value === 'select' ? row.querySelector('.builder-options').value.split(',').map(s=>s.trim()).filter(Boolean) : [],
+    })).filter(x=>x.label);
+    if(modId){ extra.values = state.data.modules.find(m=>m.id===modId).values || {}; }
+    else extra.values = {};
   }
-
-  async function saveGameFromForm() {
-    const editId = els.gameEditId.value;
-    const bannerUpload = await fileToDataUrl(els.bannerFileInput.files[0]);
-    const title = els.gameTitleInput.value.trim();
-    const categoryId = els.gameCategorySelect.value;
-    const templateId = els.gameTemplateSelect.value;
-    const steamAppId = els.steamAppIdInput.value.trim();
-    let banner = bannerUpload || els.bannerUrlInput.value.trim();
-    if (!banner && steamAppId) banner = `https://cdn.cloudflare.steamstatic.com/steam/apps/${steamAppId}/header.jpg`;
-    if (editId) {
-      const game = getGame(editId);
-      if (!game) return;
-      game.title = title; game.status = els.gameStatusSelect.value; game.categoryId = categoryId; game.templateId = templateId; game.steamAppId = steamAppId; if (banner) game.banner = banner;
-    } else {
-      const game = { id: uid('game'), title, status: els.gameStatusSelect.value, categoryId, templateId, steamAppId, banner, createdAt: Date.now() };
-      state.games.unshift(game);
-      instantiateTemplate(game.id, templateId);
-      touchRecent(game.id);
-      currentView = { type: 'game', id: game.id };
-    }
-    closeDialog('gameModal');
-    render();
+  if(type === 'table'){
+    extra.columns = [...el('#columnBuilderList').children].map(row => ({
+      id: id('col'),
+      label: row.querySelector('.builder-label').value.trim(),
+      type: row.querySelector('.builder-type').value,
+      options: row.querySelector('.builder-type').value === 'select' ? row.querySelector('.builder-options').value.split(',').map(s=>s.trim()).filter(Boolean) : [],
+    })).filter(x=>x.label);
+    extra.rows = modId ? state.data.modules.find(m=>m.id===modId).rows || [] : [];
   }
-
-  function instantiateTemplate(gameId, templateId) {
-    const template = getTemplate(templateId) || getTemplate('blank');
-    const currentMods = state.modules.filter(m => m.gameId === gameId);
-    if (currentMods.length) return;
-    template.modules.forEach((m, index) => {
-      state.modules.push({ id: uid('mod'), gameId, type: m.type, title: m.title, icon: m.icon || '📜', order: index });
-    });
+  if(modId){
+    const mod = state.data.modules.find(m=>m.id===modId);
+    Object.assign(mod, base, extra);
+  } else {
+    const maxOrder = Math.max(0, ...modulesForProfile(base.profileId).map(m=>m.order || 0));
+    state.data.modules.push({ id: id('module'), order: maxOrder + 1, ...base, ...extra });
   }
+  saveData(); closeDialog('moduleModal'); render();
+};
 
-  function openModuleModal(gameId, moduleId = '') {
-    els.moduleForm.reset();
-    els.moduleEditId.value = '';
-    els.moduleGameId.value = gameId;
-    els.moduleModalTitle.textContent = moduleId ? 'Edit Module' : 'Add Module';
-    if (moduleId) {
-      const mod = getModule(moduleId);
-      if (!mod) return;
-      els.moduleEditId.value = mod.id;
-      els.moduleTypeSelect.value = mod.type;
-      els.moduleIconInput.value = mod.icon || '';
-      els.moduleTitleInput.value = mod.title;
-    }
-    els.moduleModal.showModal();
+el('#entryForm').onsubmit = (e) => {
+  e.preventDefault();
+  const entryId = el('#entryEditId').value;
+  const payload = { moduleId: el('#entryModuleId').value, title: el('#entryTitleInput').value.trim(), content: el('#entryContentInput').value.trim() };
+  if(entryId){ Object.assign(state.data.entries.find(x=>x.id===entryId), payload); }
+  else state.data.entries.push({ id: id('entry'), checked: false, ...payload });
+  saveData(); closeDialog('entryModal'); render();
+};
+
+el('#tableRowForm').onsubmit = (e) => {
+  e.preventDefault();
+  const moduleId = el('#tableRowModuleId').value;
+  const mod = state.data.modules.find(m=>m.id===moduleId);
+  const rowId = el('#tableRowEditId').value;
+  const values = {};
+  [...el('#tableRowFields').querySelectorAll('input,select')].forEach(input => {
+    const idx = input.dataset.colIndex;
+    values[idx] = input.dataset.colType === 'toggle' ? input.value === 'true' : input.value;
+  });
+  if(rowId){ Object.assign(mod.rows.find(r=>r.id===rowId), { values }); }
+  else {
+    if(!mod.rows) mod.rows = [];
+    mod.rows.push({ id: id('row'), values });
   }
+  saveData(); closeDialog('tableRowModal'); render();
+};
 
-  function saveModuleFromForm() {
-    const editId = els.moduleEditId.value;
-    if (editId) {
-      const mod = getModule(editId);
-      if (!mod) return;
-      mod.type = els.moduleTypeSelect.value; mod.icon = els.moduleIconInput.value.trim() || defaultIconFor(mod.type); mod.title = els.moduleTitleInput.value.trim();
-    } else {
-      const gameModules = getModulesForGame(els.moduleGameId.value);
-      state.modules.push({ id: uid('mod'), gameId: els.moduleGameId.value, type: els.moduleTypeSelect.value, title: els.moduleTitleInput.value.trim(), icon: els.moduleIconInput.value.trim() || defaultIconFor(els.moduleTypeSelect.value), order: gameModules.length });
-    }
-    closeDialog('moduleModal');
-    render();
-  }
+el('#moduleTypeInput').onchange = toggleModuleBuilders;
+el('#addFieldBtn').onclick = () => el('#fieldBuilderList').appendChild(newBuilderRow('field'));
+el('#addColumnBtn').onclick = () => el('#columnBuilderList').appendChild(newBuilderRow('col'));
 
-  function deleteModule(moduleId) {
-    if (!confirm('Delete this module and its entries?')) return;
-    state.modules = state.modules.filter(m => m.id !== moduleId);
-    state.entries = state.entries.filter(e => e.moduleId !== moduleId);
-    render();
-  }
+el('#openSidebarBtn').onclick = openSidebar;
+el('#closeSidebarBtn').onclick = closeSidebar;
+el('#overlay').onclick = closeSidebar;
+els('[data-close]').forEach(btn => btn.onclick = () => closeDialog(btn.dataset.close));
+els('.nav-btn[data-view]').forEach(btn => btn.onclick = () => { setView(btn.dataset.view); closeSidebar(); });
+el('#addGameBtn').onclick = () => openGameModal();
+el('#searchInput').oninput = (e) => { state.search = e.target.value; render(); };
 
-  function moveModule(moduleId, delta) {
-    const mod = getModule(moduleId); if (!mod) return;
-    const mods = getModulesForGame(mod.gameId);
-    const idx = mods.findIndex(m => m.id === moduleId); const swap = idx + delta;
-    if (swap < 0 || swap >= mods.length) return;
-    const a = mods[idx], b = mods[swap];
-    [a.order, b.order] = [b.order, a.order];
-    render();
-  }
+el('#exportBtn').onclick = () => {
+  const blob = new Blob([JSON.stringify(state.data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'game-codex-v5-backup.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+el('#importInput').onchange = async (e) => {
+  const file = e.target.files[0]; if(!file) return;
+  try {
+    const text = await file.text();
+    state.data = JSON.parse(text);
+    saveData(); render();
+    alert('Backup imported.');
+  } catch { alert('Import failed. Use a valid Game Codex backup JSON.'); }
+};
+el('#resetBtn').onclick = () => { if(confirm('Reset to demo data?')){ state.data = seedData(); saveData(); setView('home'); } };
 
-  function openEntryModal(moduleId, entryId = '') {
-    els.entryForm.reset();
-    els.entryEditId.value = '';
-    els.entryModuleId.value = moduleId;
-    els.entryModuleType.value = getModule(moduleId)?.type || 'notes';
-    els.entryModalTitle.textContent = entryId ? 'Edit Entry' : 'Add Entry';
-    if (entryId) {
-      const entry = getEntry(entryId); if (!entry) return;
-      els.entryEditId.value = entry.id; els.entryTitleInput.value = entry.title; els.entryContentInput.value = entry.content || '';
-    }
-    els.entryModal.showModal();
-  }
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+}
 
-  function saveEntryFromForm() {
-    const editId = els.entryEditId.value;
-    if (editId) {
-      const entry = getEntry(editId); if (!entry) return;
-      entry.title = els.entryTitleInput.value.trim(); entry.content = els.entryContentInput.value.trim();
-    } else {
-      state.entries.push({ id: uid('entry'), moduleId: els.entryModuleId.value, title: els.entryTitleInput.value.trim(), content: els.entryContentInput.value.trim(), completed: false });
-    }
-    closeDialog('entryModal');
-    render();
-  }
-
-  function deleteEntry(entryId) {
-    state.entries = state.entries.filter(e => e.id !== entryId);
-    render();
-  }
-
-  function toggleChecklist(entryId) {
-    const entry = getEntry(entryId); if (!entry) return;
-    entry.completed = !entry.completed;
-    render();
-  }
-
-  function openTemplateModal(templateId = '') {
-    syncTemplateBaseSelect();
-    els.templateForm.reset();
-    els.templateEditId.value = '';
-    els.templateModuleBuilder.innerHTML = '';
-    els.templateModalTitle.textContent = templateId ? 'Edit Template' : 'Create Template';
-    if (templateId) {
-      const template = getTemplate(templateId); if (!template) return;
-      els.templateEditId.value = template.id;
-      els.templateNameInput.value = template.name;
-      els.templateDescriptionInput.value = template.description || '';
-      els.templateBaseSelect.value = template.id;
-      template.modules.forEach(m => appendTemplateModuleRow(m));
-    } else {
-      els.templateBaseSelect.value = 'blank';
-      defaultTemplates.blank.modules.forEach(m => appendTemplateModuleRow(m));
-    }
-    els.templateModal.showModal();
-  }
-
-  function appendTemplateModuleRow(module = { title: '', type: 'notes', icon: '📜' }) {
-    const row = document.createElement('div');
-    row.className = 'builder-row';
-    row.innerHTML = `
-      <div class="builder-row-grid">
-        <input class="small-input" data-role="title" placeholder="Module title" value="${escapeAttribute(module.title || '')}" />
-        <select class="small-select" data-role="type">
-          ${['notes','checklist','resource','production','locations'].map(t => `<option value="${t}" ${module.type === t ? 'selected' : ''}>${t}</option>`).join('')}
-        </select>
-        <input class="small-input" data-role="icon" maxlength="4" value="${escapeAttribute(module.icon || defaultIconFor(module.type))}" />
-        <button type="button" class="danger-btn" data-role="remove">Delete</button>
-      </div>`;
-    row.querySelector('[data-role="remove"]').addEventListener('click', () => row.remove());
-    els.templateModuleBuilder.appendChild(row);
-  }
-
-  function saveTemplateFromForm() {
-    const modules = [...els.templateModuleBuilder.querySelectorAll('.builder-row')].map(row => ({
-      title: row.querySelector('[data-role="title"]').value.trim(),
-      type: row.querySelector('[data-role="type"]').value,
-      icon: row.querySelector('[data-role="icon"]').value.trim() || defaultIconFor(row.querySelector('[data-role="type"]').value)
-    })).filter(m => m.title);
-    if (!modules.length) return alert('Need at least one module in the template.');
-    const editId = els.templateEditId.value;
-    if (editId && defaultTemplates[editId]) return alert('System templates cannot be overwritten. Clone one instead.');
-    if (editId) {
-      const tpl = state.templates.find(t => t.id === editId); if (!tpl) return;
-      tpl.name = els.templateNameInput.value.trim(); tpl.description = els.templateDescriptionInput.value.trim(); tpl.modules = modules;
-    } else {
-      state.templates.unshift({ id: uid('tpl'), name: els.templateNameInput.value.trim(), description: els.templateDescriptionInput.value.trim(), modules, system: false });
-    }
-    syncTemplateSelects();
-    closeDialog('templateModal');
-    render();
-  }
-
-  function deleteTemplate(templateId) {
-    const tpl = state.templates.find(t => t.id === templateId);
-    if (!tpl || tpl.system) return;
-    if (!confirm('Delete this custom template?')) return;
-    state.templates = state.templates.filter(t => t.id !== templateId);
-    state.games.forEach(g => { if (g.templateId === templateId) g.templateId = 'blank'; });
-    syncTemplateSelects();
-    render();
-  }
-
-  function cloneTemplate(templateId) {
-    const tpl = getTemplate(templateId); if (!tpl) return;
-    openTemplateModal();
-    els.templateNameInput.value = `${tpl.name} Copy`;
-    els.templateDescriptionInput.value = tpl.description || '';
-    els.templateModuleBuilder.innerHTML = '';
-    tpl.modules.forEach(m => appendTemplateModuleRow(m));
-  }
-
-  function syncTemplateSelects() {
-    const options = allTemplates().map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
-    els.gameTemplateSelect.innerHTML = options;
-  }
-
-  function syncTemplateBaseSelect() {
-    els.templateBaseSelect.innerHTML = allTemplates().map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('');
-    els.templateBaseSelect.onchange = () => {
-      const base = getTemplate(els.templateBaseSelect.value);
-      if (!base || els.templateEditId.value) return;
-      els.templateModuleBuilder.innerHTML = '';
-      base.modules.forEach(m => appendTemplateModuleRow(m));
-    };
-  }
-
-  function syncCategorySelect() {
-    els.gameCategorySelect.innerHTML = state.categories.map(cat => `<option value="${cat.id}">${cat.name}</option>`).join('');
-  }
-
-  function saveTheme() {
-    const theme = { gold: els.goldInput.value, purple: els.purpleInput.value, bg: els.bgInput.value };
-    localStorage.setItem(THEME_KEY, JSON.stringify(theme));
-    applyTheme(theme);
-    closeDialog('themeModal');
-  }
-
-  function applyTheme(theme) {
-    const root = document.documentElement;
-    root.style.setProperty('--gold', theme.gold);
-    root.style.setProperty('--purple', theme.purple);
-    root.style.setProperty('--bg', theme.bg);
-    els.goldInput.value = theme.gold; els.purpleInput.value = theme.purple; els.bgInput.value = theme.bg;
-  }
-
-  function exportBackup() {
-    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = 'game-codex-v4-backup.json'; a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  function importBackup(e) {
-    const file = e.target.files?.[0]; if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      try {
-        const parsed = JSON.parse(reader.result);
-        state = normalizeState(parsed);
-        syncCategorySelect(); syncTemplateSelects(); render();
-      } catch { alert('Import failed. That file is garbage or not from Game Codex.'); }
-    };
-    reader.readAsText(file);
-    e.target.value = '';
-  }
-
-  function deleteGame(gameId) {
-    if (!confirm('Delete this game and all its data?')) return;
-    const moduleIds = state.modules.filter(m => m.gameId === gameId).map(m => m.id);
-    state.games = state.games.filter(g => g.id !== gameId);
-    state.modules = state.modules.filter(m => m.gameId !== gameId);
-    state.entries = state.entries.filter(e => !moduleIds.includes(e.moduleId));
-    state.recentGameIds = state.recentGameIds.filter(id => id !== gameId);
-    state.favoriteGameIds = state.favoriteGameIds.filter(id => id !== gameId);
-    currentView = { type: 'home' };
-    render();
-  }
-
-  function ensureDemoGames() {
-    if (state.games.length) return;
-    const demos = [
-      { title: 'Satisfactory', categoryId: 'cat_automation', templateId: 'tpl_sat_run', steamAppId: '526870', status: 'active' },
-      { title: 'Cyberpunk 2077', categoryId: 'cat_rpg', templateId: 'openWorldRpg', steamAppId: '1091500', status: 'researching' },
-      { title: 'Minecraft', categoryId: 'cat_sandbox', templateId: 'sandbox', steamAppId: '', status: 'active' }
-    ];
-    demos.forEach(d => {
-      const game = { id: uid('game'), ...d, banner: d.steamAppId ? `https://cdn.cloudflare.steamstatic.com/steam/apps/${d.steamAppId}/header.jpg` : '', createdAt: Date.now() };
-      state.games.push(game);
-      instantiateTemplate(game.id, game.templateId);
-    });
-    const sat = state.games.find(g => g.title === 'Satisfactory');
-    const mc = state.games.find(g => g.title === 'Minecraft');
-    const cp = state.games.find(g => g.title === 'Cyberpunk 2077');
-    addEntryByTitle(sat.id, 'Factory Goals', 'Automate reinforced plates');
-    addEntryByTitle(sat.id, 'Production Tracker', 'Motors / min', '5');
-    addEntryByTitle(mc.id, 'Project Checklist', 'Start villager hall');
-    addEntryByTitle(cp.id, 'Main Goals', 'Track build direction');
-    state.recentGameIds = [sat.id, cp.id, mc.id];
-    state.favoriteGameIds = [sat.id];
-    saveState();
-  }
-
-  function addEntryByTitle(gameId, moduleTitle, title, content='') {
-    const mod = getModulesForGame(gameId).find(m => m.title === moduleTitle);
-    if (!mod) return;
-    state.entries.push({ id: uid('entry'), moduleId: mod.id, title, content, completed: false });
-  }
-
-  function loadState(forceFresh = false) {
-    if (forceFresh) return normalizeState(structuredClone(starterState));
-    try {
-      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-      return saved ? normalizeState(saved) : normalizeState(structuredClone(starterState));
-    } catch { return normalizeState(structuredClone(starterState)); }
-  }
-
-  function normalizeState(raw) {
-    const normalized = {
-      categories: Array.isArray(raw.categories) ? raw.categories : structuredClone(starterState.categories),
-      templates: Array.isArray(raw.templates) ? raw.templates : [],
-      games: Array.isArray(raw.games) ? raw.games : [],
-      modules: Array.isArray(raw.modules) ? raw.modules : [],
-      entries: Array.isArray(raw.entries) ? raw.entries : [],
-      recentGameIds: Array.isArray(raw.recentGameIds) ? raw.recentGameIds : [],
-      favoriteGameIds: Array.isArray(raw.favoriteGameIds) ? raw.favoriteGameIds : []
-    };
-    Object.values(defaultTemplates).forEach(tpl => { if (!normalized.templates.find(t => t.id === tpl.id)) normalized.templates.unshift(structuredClone(tpl)); });
-    normalized.templates = dedupeById(normalized.templates.map(t => ({ ...t, system: !!(t.system || defaultTemplates[t.id]) })));
-    return normalized;
-  }
-
-  function saveState() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
-  function loadTheme() { try { return { ...defaultTheme, ...(JSON.parse(localStorage.getItem(THEME_KEY)) || {}) }; } catch { return defaultTheme; } }
-
-  function allTemplates() { return dedupeById([...state.templates, ...Object.values(defaultTemplates)]).sort((a,b) => Number(a.system) - Number(b.system) || a.name.localeCompare(b.name)); }
-  function getTemplate(id) { return allTemplates().find(t => t.id === id); }
-  function getGame(id) { return state.games.find(g => g.id === id); }
-  function getModule(id) { return state.modules.find(m => m.id === id); }
-  function getEntry(id) { return state.entries.find(e => e.id === id); }
-  function getModulesForGame(gameId) { return state.modules.filter(m => m.gameId === gameId).sort((a,b) => a.order - b.order); }
-  function getEntriesForModule(moduleId) { return state.entries.filter(e => e.moduleId === moduleId); }
-
-  function uid(prefix) { return `${prefix}_${Math.random().toString(36).slice(2,10)}`; }
-  function dedupeById(arr) { return arr.filter((item, idx, list) => list.findIndex(x => x.id === item.id) === idx); }
-  function defaultIconFor(type) { return ({ notes: '📜', checklist: '✔', resource: '📦', production: '⚙️', locations: '📍' })[type] || '📜'; }
-  function escapeHtml(v) { return String(v ?? '').replace(/[&<>'"]/g, m => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[m])); }
-  function escapeAttribute(v) { return escapeHtml(v).replace(/`/g, '&#96;'); }
-  async function fileToDataUrl(file) {
-    if (!file) return '';
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  }
-})();
+render();
