@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#120f18" />
-  <title>Game Codex v5</title>
+  <title>Game Codex v6</title>
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -16,22 +16,29 @@
           <div class="eyebrow">Royal Archive</div>
           <h1>Game Codex</h1>
         </div>
-        <button id="closeSidebarBtn" class="icon-btn">✕</button>
+        <button id="closeSidebarBtn" class="icon-btn" type="button">✕</button>
       </div>
+
       <div class="sidebar-section">
-        <button class="nav-btn active" data-view="home">🏠 Home</button>
-        <button class="nav-btn" data-view="favorites">⭐ Favorites</button>
+        <button class="nav-btn active" data-view="home" type="button">🏠 Home</button>
+        <button class="nav-btn" data-view="favorites" type="button">⭐ Favorites</button>
+        <button class="nav-btn" data-view="archive" type="button">🗄 Archive</button>
       </div>
+
       <div class="sidebar-section">
-        <div class="section-label">Categories</div>
+        <div class="section-row">
+          <div class="section-label">Categories</div>
+          <button id="openCategoryManagerBtn" class="tiny-btn" type="button">Manage</button>
+        </div>
         <div id="sidebarCategories" class="sidebar-list"></div>
       </div>
+
       <div class="sidebar-section">
         <div class="section-label">Tools</div>
         <div class="sidebar-list">
-          <button id="exportBtn" class="nav-btn">📦 Export</button>
+          <button id="exportBtn" class="nav-btn" type="button">📦 Export</button>
           <label class="nav-btn file-label">📥 Import<input id="importInput" type="file" accept="application/json" hidden /></label>
-          <button id="resetBtn" class="nav-btn danger">🧨 Reset Demo</button>
+          <button id="resetBtn" class="nav-btn danger" type="button">🧨 Reset Demo</button>
         </div>
       </div>
     </aside>
@@ -41,15 +48,15 @@
     <main class="main">
       <header class="topbar">
         <div class="topbar-left">
-          <button id="openSidebarBtn" class="icon-btn">☰</button>
+          <button id="openSidebarBtn" class="icon-btn" type="button">☰</button>
           <div>
-            <div class="eyebrow">Profiles + custom fields build</div>
+            <div class="eyebrow">v6 · custom categories + archive + clone</div>
             <h2 id="viewTitle">Game Codex</h2>
           </div>
         </div>
         <div class="topbar-right">
           <input id="searchInput" class="search" type="search" placeholder="Search games, profiles, modules..." />
-          <button id="addGameBtn" class="primary-btn">+ Add Game</button>
+          <button id="addGameBtn" class="primary-btn" type="button">+ Add Game</button>
         </div>
       </header>
 
@@ -58,6 +65,7 @@
       <section id="gameView" class="view hidden"></section>
       <section id="profileView" class="view hidden"></section>
       <section id="favoritesView" class="view hidden"></section>
+      <section id="archiveView" class="view hidden"></section>
     </main>
   </div>
 
@@ -67,7 +75,7 @@
       <input id="gameEditId" type="hidden" />
       <div class="form-grid two">
         <label><span>Game title</span><input id="gameTitleInput" type="text" required /></label>
-        <label><span>Status</span><select id="gameStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="archived">Archived</option></select></label>
+        <label><span>Status</span><select id="gameStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="completed">Completed</option><option value="dropped">Dropped</option><option value="wishlist">Wishlist</option><option value="archived">Archived</option></select></label>
       </div>
       <div class="form-grid two">
         <label><span>Category</span><select id="gameCategoryInput"></select></label>
@@ -81,6 +89,27 @@
     </form>
   </dialog>
 
+  <dialog id="categoryModal" class="modal">
+    <form id="categoryForm" class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Category Forge</div><h3 id="categoryModalTitle">Add Category</h3></div><button type="button" class="icon-btn" data-close="categoryModal">✕</button></div>
+      <input id="categoryEditId" type="hidden" />
+      <div class="form-grid two">
+        <label><span>Name</span><input id="categoryNameInput" type="text" required /></label>
+        <label><span>Icon</span><input id="categoryIconInput" type="text" maxlength="4" placeholder="🎮" /></label>
+      </div>
+      <label><span>Accent Color</span><input id="categoryColorInput" type="color" value="#d4af37" /></label>
+      <div class="modal-actions"><button type="button" class="secondary-btn" data-close="categoryModal">Cancel</button><button type="submit" class="primary-btn">Save Category</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="categoryManagerModal" class="modal wide">
+    <div class="modal-card">
+      <div class="modal-head"><div><div class="eyebrow">Category Control</div><h3>Manage Categories</h3></div><button type="button" class="icon-btn" data-close="categoryManagerModal">✕</button></div>
+      <div class="modal-actions stretch"><button id="addCategoryBtn" class="primary-btn" type="button">+ Add Category</button></div>
+      <div id="categoryManagerList" class="stack-list"></div>
+    </div>
+  </dialog>
+
   <dialog id="profileModal" class="modal">
     <form id="profileForm" class="modal-card">
       <div class="modal-head"><div><div class="eyebrow">Profile</div><h3 id="profileModalTitle">Add Profile</h3></div><button type="button" class="icon-btn" data-close="profileModal">✕</button></div>
@@ -91,7 +120,7 @@
         <label><span>Type</span><select id="profileTypeInput"><option value="world">World</option><option value="playthrough">Playthrough</option><option value="save">Save</option><option value="run">Run</option><option value="build">Build</option><option value="custom">Custom</option></select></label>
       </div>
       <div class="form-grid two">
-        <label><span>Status</span><select id="profileStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="archived">Archived</option></select></label>
+        <label><span>Status</span><select id="profileStatusInput"><option value="active">Active</option><option value="paused">Paused</option><option value="finished">Finished</option><option value="abandoned">Abandoned</option><option value="archived">Archived</option></select></label>
         <label><span>Accent note</span><input id="profileTagInput" type="text" placeholder="modded, solo, hardcore..." /></label>
       </div>
       <div class="modal-actions"><button type="button" class="secondary-btn" data-close="profileModal">Cancel</button><button type="submit" class="primary-btn">Save Profile</button></div>
