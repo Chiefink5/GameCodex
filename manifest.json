@@ -1,9 +1,9 @@
 {
-  "name": "Game Codex v7",
-  "short_name": "Game Codex",
-  "start_url": "./",
+  "name": "Game Codex",
+  "short_name": "Codex",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#120f18",
-  "theme_color": "#120f18",
+  "background_color": "#110f18",
+  "theme_color": "#16121f",
   "icons": []
 }
