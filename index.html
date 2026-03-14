@@ -16,7 +16,7 @@
       <nav class="nav">
         <button class="nav-btn" data-route="home">🏠 Home</button>
         <button class="nav-btn" data-route="archive">🗃 Archive</button>
-        <button class="nav-btn" data-route="presets">🧩 Module Presets</button>
+        <button class="nav-btn" data-route="presets">🧩 Presets</button>
         <button class="nav-btn" data-route="settings">🎨 Theme</button>
       </nav>
       <div class="sidebar-section">
@@ -26,9 +26,8 @@
         </div>
         <div id="categoryList" class="stack"></div>
       </div>
-      <div class="sidebar-foot">Data saves locally in your browser.</div>
+      <div class="sidebar-foot">Everything saves locally in your browser.</div>
     </aside>
-
     <main class="main">
       <header class="topbar">
         <button id="menuBtn" class="icon-btn">☰</button>
@@ -36,16 +35,12 @@
         <div class="topbar-actions">
           <button id="addGameBtn" class="gold-btn">+ Game</button>
           <button id="exportBtn" class="icon-btn">⬇</button>
-          <label class="icon-btn upload-btn">⬆
-            <input id="importInput" type="file" accept=".json" hidden />
-          </label>
+          <label class="icon-btn upload-btn">⬆<input id="importInput" type="file" accept=".json" hidden /></label>
         </div>
       </header>
-
       <section id="view" class="view"></section>
     </main>
   </div>
-
   <dialog id="modal" class="modal"></dialog>
   <script src="js/app.js"></script>
 </body>
