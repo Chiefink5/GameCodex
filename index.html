@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Game Codex</title>
-  <meta name="theme-color" content="#16121f" />
+  <meta name="theme-color" content="#120f18" />
   <link rel="manifest" href="manifest.json" />
   <link rel="stylesheet" href="css/styles.css" />
 </head>
@@ -12,35 +12,50 @@
   <div id="scrim" class="scrim"></div>
   <div class="app-shell">
     <aside id="sidebar" class="sidebar">
-      <div class="brand">👑 <span>Game Codex</span></div>
+      <div class="brand">
+        <div class="brand-mark">👑</div>
+        <div>
+          <div class="eyebrow">Royal Game Archive</div>
+          <div class="brand-title">Game Codex</div>
+        </div>
+      </div>
       <nav class="nav">
         <button class="nav-btn" data-route="home">🏠 Home</button>
         <button class="nav-btn" data-route="archive">🗃 Archive</button>
         <button class="nav-btn" data-route="presets">🧩 Presets</button>
         <button class="nav-btn" data-route="settings">🎨 Theme</button>
       </nav>
-      <div class="sidebar-section">
+      <section class="sidebar-section">
         <div class="section-head">
           <span>Categories</span>
-          <button id="addCategoryBtn" class="mini">+ Add</button>
+          <button id="addCategoryBtn" class="mini-btn">+ Add</button>
         </div>
-        <div id="categoryList" class="stack"></div>
-      </div>
-      <div class="sidebar-foot">Everything saves locally in your browser.</div>
+        <div id="categoryList" class="category-list"></div>
+      </section>
+      <div class="sidebar-foot">Stored locally in your browser.</div>
     </aside>
+
     <main class="main">
       <header class="topbar">
-        <button id="menuBtn" class="icon-btn">☰</button>
-        <div class="topbar-title">Game Codex</div>
+        <div class="topbar-left">
+          <button id="menuBtn" class="icon-btn">☰</button>
+          <div>
+            <div class="eyebrow">Game planning, worlds, runs, servers</div>
+            <div class="topbar-title">Game Codex</div>
+          </div>
+        </div>
         <div class="topbar-actions">
           <button id="addGameBtn" class="gold-btn">+ Game</button>
           <button id="exportBtn" class="icon-btn">⬇</button>
-          <label class="icon-btn upload-btn">⬆<input id="importInput" type="file" accept=".json" hidden /></label>
+          <label class="icon-btn file-btn">⬆
+            <input id="importInput" type="file" accept=".json" hidden />
+          </label>
         </div>
       </header>
       <section id="view" class="view"></section>
     </main>
   </div>
+
   <dialog id="modal" class="modal"></dialog>
   <script src="js/app.js"></script>
 </body>
