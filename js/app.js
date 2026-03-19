@@ -2,10 +2,20 @@
 (async function(){
   const { id, slug, cap, esc, gid } = window.GCUtils;
   const Storage = window.GCStorage;
-  const UI = window.GCUI;
+  const UI = window.GCUI || window.UI || {};
   const Mods = window.GCModules;
 
   const TAXONOMY_TYPES = Object.keys(Mods.TRACKER_DEFS);
+
+  const safeUI = {
+    cardMarkup: (...args) => (UI.cardMarkup ? UI.cardMarkup(...args) : `<article class="card"><h3>Card</h3></article>`),
+    subCardMarkup: (...args) => (UI.subCardMarkup ? UI.subCardMarkup(...args) : `<article class="card"><h3>${String(args[1] || '')}</h3></article>`),
+    profileRowMarkup: (...args) => (UI.profileRowMarkup ? UI.profileRowMarkup(...args) : `<div class="item-shell"><div class="item-left"><div class="item-title">${String(args[0]?.name || 'Profile')}</div></div></div>`),
+    serverRowMarkup: (...args) => (UI.serverRowMarkup ? UI.serverRowMarkup(...args) : `<div class="item-shell"><div class="item-left"><div class="item-title">${String(args[0]?.name || 'Server')}</div></div></div>`),
+    archiveRowMarkup: (...args) => (UI.archiveRowMarkup ? UI.archiveRowMarkup(...args) : `<div class="item-shell"><div class="item-left"><div class="item-title">${String(args[0] || '')}</div></div></div>`),
+    renderModuleMarkup: (...args) => (UI.renderModuleMarkup ? UI.renderModuleMarkup(...args) : `<div class="item-shell"><div class="item-left"><div class="muted">Module renderer unavailable.</div></div></div>`)
+  };
+
 
   const defaultState = {
     theme:{gold:'#d4af37',accent:'#6c4ea5'},
@@ -131,9 +141,9 @@
   function renderHome(){
     const recent = state.ui.recent.map(tok => {
       const [k,v] = tok.split(':');
-      if (k === 'game') { const g = gameById(v); return g ? UI.cardMarkup(g, window.GCApp) : ''; }
-      if (k === 'profile') { const p = profileById(v); return p ? UI.subCardMarkup('Profile', p.name, gameById(p.gameId)?.title || '') : ''; }
-      if (k === 'server') { const s = serverById(v); return s ? UI.subCardMarkup('Server', s.name, gameById(s.gameId)?.title || '') : ''; }
+      if (k === 'game') { const g = gameById(v); return g ? safeUI.cardMarkup(g, window.GCApp) : ''; }
+      if (k === 'profile') { const p = profileById(v); return p ? safeUI.subCardMarkup('Profile', p.name, gameById(p.gameId)?.title || '') : ''; }
+      if (k === 'server') { const s = serverById(v); return s ? safeUI.subCardMarkup('Server', s.name, gameById(s.gameId)?.title || '') : ''; }
       return '';
     }).join('') || `<div class="card"><h3>No recent views yet</h3><div class="muted">Open a game, profile, or server and it’ll pin here.</div></div>`;
 
@@ -185,7 +195,7 @@
       if (sort === 'title') list.sort((a,b) => a.title.localeCompare(b.title));
       if (sort === 'profiles') list.sort((a,b) => profilesForGame(b.id).length - profilesForGame(a.id).length);
       if (sort === 'servers') list.sort((a,b) => serversForGame(b.id).length - serversForGame(a.id).length);
-      gid('homeResults').innerHTML = list.map(g => UI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
+      gid('homeResults').innerHTML = list.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
       bindDynamic();
     }
   }
@@ -193,7 +203,7 @@
   function renderCategory(id){
     const c = categoryById(id); if (!c) return navigate('home');
     const games = state.games.filter(g => g.categoryId === id && !g.archived);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => UI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
     gid('editCategoryBtn').onclick = () => openCategoryForm(c);
     gid('addGameToCategoryBtn').onclick = () => openGameForm(null, { categoryId:c.id });
     bindDynamic();
@@ -203,7 +213,7 @@
     const g = gameById(id); if (!g) return navigate('home');
     touchRecent('game', g.id);
     const c = categoryById(g.categoryId), profiles = profilesForGame(g.id).filter(p => !p.archived), servers = serversForGame(g.id).filter(s => !s.archived);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Game chamber</div><h2 class="hero-title">${esc(g.title)} ${g.favorite ? '<span class="favorite">★</span>' : ''}</h2><div class="tag-row"><span class="stat-chip">${c?.icon || '📁'} ${esc(c?.name || 'Unknown')}</span><span class="stat-chip">${cap(g.status || 'active')}</span>${g.supportsProfiles ? '<span class="stat-chip">Profiles On</span>' : ''}${g.supportsServers ? '<span class="stat-chip">Servers On</span>' : ''}</div></div><div class="inline-actions"><button id="toggleFavoriteGameBtn" class="ghost-btn">${g.favorite ? '★ Unfavorite' : '☆ Favorite'}</button><button id="editGameBtn" class="ghost-btn">Edit</button><button id="archiveGameBtn" class="danger-btn">${g.archived ? 'Restore' : 'Archive'}</button></div></div></section>${g.supportsProfiles ? `<section class="panel"><div class="section-head"><div class="panel-title"><h3>Profiles</h3><div class="muted">Worlds, runs, saves, builds.</div></div><button id="addProfileBtn" class="gold-btn">+ Add Profile</button></div><div class="list" style="margin-top:14px">${profiles.map(UI.profileRowMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No profiles yet.</div></div></div>`}</div></section>` : ''}${g.supportsServers ? `<section class="panel"><div class="section-head"><div class="panel-title"><h3>Servers</h3><div class="muted">Planning spaces for SMPs and more.</div></div><button id="addServerBtn" class="gold-btn">+ Create Server</button></div><div class="list" style="margin-top:14px">${servers.map(UI.serverRowMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No servers yet.</div></div></div>`}</div></section>` : ''}`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Game chamber</div><h2 class="hero-title">${esc(g.title)} ${g.favorite ? '<span class="favorite">★</span>' : ''}</h2><div class="tag-row"><span class="stat-chip">${c?.icon || '📁'} ${esc(c?.name || 'Unknown')}</span><span class="stat-chip">${cap(g.status || 'active')}</span>${g.supportsProfiles ? '<span class="stat-chip">Profiles On</span>' : ''}${g.supportsServers ? '<span class="stat-chip">Servers On</span>' : ''}</div></div><div class="inline-actions"><button id="toggleFavoriteGameBtn" class="ghost-btn">${g.favorite ? '★ Unfavorite' : '☆ Favorite'}</button><button id="editGameBtn" class="ghost-btn">Edit</button><button id="archiveGameBtn" class="danger-btn">${g.archived ? 'Restore' : 'Archive'}</button></div></div></section>${g.supportsProfiles ? `<section class="panel"><div class="section-head"><div class="panel-title"><h3>Profiles</h3><div class="muted">Worlds, runs, saves, builds.</div></div><button id="addProfileBtn" class="gold-btn">+ Add Profile</button></div><div class="list" style="margin-top:14px">${profiles.map(p => safeUI.profileRowMarkup(p)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No profiles yet.</div></div></div>`}</div></section>` : ''}${g.supportsServers ? `<section class="panel"><div class="section-head"><div class="panel-title"><h3>Servers</h3><div class="muted">Planning spaces for SMPs and more.</div></div><button id="addServerBtn" class="gold-btn">+ Create Server</button></div><div class="list" style="margin-top:14px">${servers.map(s => safeUI.serverRowMarkup(s)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No servers yet.</div></div></div>`}</div></section>` : ''}`;
     gid('toggleFavoriteGameBtn').onclick = () => { g.favorite = !g.favorite; persist(); render(); };
     gid('editGameBtn').onclick = () => openGameForm(g);
     gid('archiveGameBtn').onclick = () => { g.archived = !g.archived; persist(); navigate(g.archived ? 'archive' : 'game', g.id); };
@@ -216,7 +226,7 @@
     const p = profileById(id); if (!p) return navigate('home');
     touchRecent('profile', p.id);
     const g = gameById(p.gameId), mods = modulesFor('profile', p.id);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Profile chamber</div><h2 class="hero-title">${esc(p.name)}</h2><div class="tag-row"><span class="stat-chip">${esc(p.type || 'Profile')}</span><span class="stat-chip">${cap(p.status || 'active')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editProfileBtn" class="ghost-btn">Edit</button><button id="cloneProfileBtn" class="ghost-btn">Clone</button><button id="archiveProfileBtn" class="danger-btn">${p.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Modules</h3><div class="muted">Additive expansion only — all original systems preserved.</div></div><div class="inline-actions"><button id="addPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(UI.renderModuleMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Profile chamber</div><h2 class="hero-title">${esc(p.name)}</h2><div class="tag-row"><span class="stat-chip">${esc(p.type || 'Profile')}</span><span class="stat-chip">${cap(p.status || 'active')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editProfileBtn" class="ghost-btn">Edit</button><button id="cloneProfileBtn" class="ghost-btn">Clone</button><button id="archiveProfileBtn" class="danger-btn">${p.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Modules</h3><div class="muted">Additive expansion only — all original systems preserved.</div></div><div class="inline-actions"><button id="addPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(m => safeUI.renderModuleMarkup(m)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
     gid('editProfileBtn').onclick = () => openProfileForm(p.gameId, p);
     gid('cloneProfileBtn').onclick = () => cloneProfile(p);
     gid('archiveProfileBtn').onclick = () => { p.archived = !p.archived; persist(); navigate(p.archived ? 'archive' : 'profile', p.id); };
@@ -229,7 +239,7 @@
     const s = serverById(id); if (!s) return navigate('home');
     touchRecent('server', s.id);
     const g = gameById(s.gameId), mods = modulesFor('server', s.id);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Server chamber</div><h2 class="hero-title">${esc(s.name)}</h2><div class="tag-row"><span class="stat-chip">Server</span><span class="stat-chip">${esc(s.template || 'Blank')}</span><span class="stat-chip">${cap(s.status || 'planning')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editServerBtn" class="ghost-btn">Edit</button><button id="cloneServerBtn" class="ghost-btn">Clone</button><button id="archiveServerBtn" class="danger-btn">${s.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Server Modules</h3><div class="muted">Works independently or alongside every other module.</div></div><div class="inline-actions"><button id="addServerPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addServerModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(UI.renderModuleMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Server chamber</div><h2 class="hero-title">${esc(s.name)}</h2><div class="tag-row"><span class="stat-chip">Server</span><span class="stat-chip">${esc(s.template || 'Blank')}</span><span class="stat-chip">${cap(s.status || 'planning')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editServerBtn" class="ghost-btn">Edit</button><button id="cloneServerBtn" class="ghost-btn">Clone</button><button id="archiveServerBtn" class="danger-btn">${s.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Server Modules</h3><div class="muted">Works independently or alongside every other module.</div></div><div class="inline-actions"><button id="addServerPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addServerModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(m => safeUI.renderModuleMarkup(m)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
     gid('editServerBtn').onclick = () => openServerForm(s.gameId, s);
     gid('cloneServerBtn').onclick = () => cloneServer(s);
     gid('archiveServerBtn').onclick = () => { s.archived = !s.archived; persist(); navigate(s.archived ? 'archive' : 'server', s.id); };
@@ -239,7 +249,7 @@
   }
 
   function renderArchive(){
-    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => UI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => UI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => UI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => safeUI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => safeUI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => safeUI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
     bindDynamic();
   }
 

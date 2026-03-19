@@ -256,3 +256,45 @@ window.GCUI = (() => {
 
   return { cardMarkup, subCardMarkup, profileRowMarkup, serverRowMarkup, archiveRowMarkup, renderModuleMarkup };
 })();
+
+
+
+/* UI API stabilization */
+(function(){
+  const fallbackEsc = (v) => String(v ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  window.UI = window.GCUI || window.UI || {};
+
+  if (!window.UI.cardMarkup) {
+    window.UI.cardMarkup = function(game, app){
+      return `<article class="card"><h3>${fallbackEsc(game?.title || 'Game')}</h3><div class="meta">${fallbackEsc(app?.categoryById?.(game?.categoryId)?.name || '')}</div></article>`;
+    };
+  }
+  if (!window.UI.subCardMarkup) {
+    window.UI.subCardMarkup = function(type, title, sub){
+      return `<article class="card"><div class="eyebrow">${fallbackEsc(type || '')}</div><h3>${fallbackEsc(title || '')}</h3><div class="meta">${fallbackEsc(sub || '')}</div></article>`;
+    };
+  }
+  if (!window.UI.profileRowMarkup) {
+    window.UI.profileRowMarkup = function(profile){
+      return `<div class="item-shell"><div class="item-left"><div class="item-title">${fallbackEsc(profile?.name || 'Profile')}</div></div></div>`;
+    };
+  }
+  if (!window.UI.serverRowMarkup) {
+    window.UI.serverRowMarkup = function(server){
+      return `<div class="item-shell"><div class="item-left"><div class="item-title">${fallbackEsc(server?.name || 'Server')}</div></div></div>`;
+    };
+  }
+  if (!window.UI.archiveRowMarkup) {
+    window.UI.archiveRowMarkup = function(title, subtext){
+      return `<div class="item-shell"><div class="item-left"><div class="item-title">${fallbackEsc(title || '')}</div><div class="muted">${fallbackEsc(subtext || '')}</div></div></div>`;
+    };
+  }
+  if (!window.UI.renderModuleMarkup && window.GCUI && window.GCUI.renderModuleMarkup) {
+    window.UI.renderModuleMarkup = window.GCUI.renderModuleMarkup;
+  }
+  if (window.GCUI) {
+    window.GCUI = Object.assign({}, window.GCUI, window.UI);
+    window.UI = window.GCUI;
+  }
+})();
+
