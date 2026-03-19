@@ -173,3 +173,6 @@ window.GCUI = (() => {
 
   return { cardMarkup, subCardMarkup, profileRowMarkup, serverRowMarkup, archiveRowMarkup, renderModuleMarkup };
 })();
+
+
+window.UI = window.GCUI;
