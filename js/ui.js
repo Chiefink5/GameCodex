@@ -102,12 +102,73 @@ window.GCUI = (() => {
 
   function recipeCardMarkup(moduleId, recipe){
     const { total, ok } = recipeTotals(recipe);
-    return `<div class="recipe-card"><div class="recipe-head"><div><div class="recipe-title">${esc(recipe.name || 'Untitled Recipe')}</div><div class="recipe-meta">${recipe.base ? `<span class="stat-chip">Base: ${esc(recipe.base)}</span>` : ''}${recipe.quantity ? `<span class="stat-chip">Qty: ${esc(recipe.quantity)}</span>` : ''}<span class="stat-chip ${ok ? '' : 'warn'}">Total: ${total}% ${ok ? '' : '⚠'}</span></div></div><div class="inline-actions"><button class="ghost-btn" data-edit-recipe="${moduleId}:${recipe.id}">Edit Recipe</button><button class="gold-btn" data-add-ingredient="${moduleId}:${recipe.id}">+ Ingredient</button><button class="danger-btn" data-delete-recipe="${moduleId}:${recipe.id}">Delete</button></div></div><div class="recipe-body">${(recipe.ingredients || []).map(ing => `<div class="ingredient-row"><div class="item-left"><div class="item-title">${esc(ing.name)}</div><div class="muted">${esc(String(ing.percent))}% ${ing.notes ? `· ${esc(ing.notes)}` : ''}</div></div><button class="danger-btn" data-delete-ingredient="${moduleId}:${recipe.id}:${ing.id}">×</button></div>`).join('') || `<div class="muted">No ingredients yet.</div>`}${recipe.notes ? `<div class="notes-box">${esc(recipe.notes).replace(/\n/g, '<br>')}</div>` : ''}</div></div>`;
+    return `<details class="recipe-card collapsible-card">
+      <summary>
+        <div class="card-collapsible-main">
+          <div class="recipe-title">${esc(recipe.name || 'Untitled Recipe')}</div>
+          <div class="recipe-meta">
+            ${recipe.base ? `<span class="stat-chip">Base: ${esc(recipe.base)}</span>` : ''}
+            ${recipe.quantity ? `<span class="stat-chip">Qty: ${esc(recipe.quantity)}</span>` : ''}
+            <span class="stat-chip ${ok ? '' : 'warn'}">Total: ${total}% ${ok ? '' : '⚠'}</span>
+          </div>
+        </div>
+        <div class="summary-hint">Open</div>
+      </summary>
+      <div class="card-collapsible-body">
+        <div class="row-actions">
+          <button class="ghost-btn" data-edit-recipe="${moduleId}:${recipe.id}">Edit</button>
+          <button class="gold-btn" data-add-ingredient="${moduleId}:${recipe.id}">+ Ingredient</button>
+          <button class="danger-btn" data-delete-recipe="${moduleId}:${recipe.id}">Delete</button>
+        </div>
+        ${(recipe.notes || '').trim() ? `<div class="notes-box">${esc(recipe.notes).replace(/
+/g, '<br>')}</div>` : ''}
+        <div class="compact-list">
+          ${(recipe.ingredients || []).map(ing => `<div class="compact-row">
+            <div class="compact-row-main">
+              <div class="compact-row-title">${esc(ing.name)}</div>
+              <div class="compact-row-meta">${esc(String(ing.percent ?? ''))}%${ing.notes ? ` · ${esc(ing.notes)}` : ''}</div>
+            </div>
+            <button class="danger-btn iconish-btn" data-delete-ingredient="${moduleId}:${recipe.id}:${ing.id}">×</button>
+          </div>`).join('') || `<div class="muted">No ingredients yet.</div>`}
+        </div>
+      </div>
+    </details>`;
   }
 
   function chainCardMarkup(moduleId, chain){
     const { stepCount, finalProduct } = chainSummary(chain);
-    return `<div class="recipe-card"><div class="recipe-head"><div><div class="recipe-title">${esc(chain.name || 'Untitled Chain')}</div><div class="recipe-meta">${chain.startProduct ? `<span class="stat-chip">Start: ${esc(chain.startProduct)}</span>` : ''}${finalProduct ? `<span class="stat-chip">Final: ${esc(finalProduct)}</span>` : ''}${chain.sellPrice ? `<span class="stat-chip">Sell: ${esc(chain.sellPrice)}</span>` : ''}<span class="stat-chip">${stepCount} Steps</span></div></div><div class="inline-actions"><button class="ghost-btn" data-edit-chain="${moduleId}:${chain.id}">Edit Chain</button><button class="gold-btn" data-add-step="${moduleId}:${chain.id}">+ Step</button><button class="danger-btn" data-delete-chain="${moduleId}:${chain.id}">Delete</button></div></div><div class="recipe-body">${(chain.steps || []).map((step, idx) => `<div class="chain-step-row"><div class="item-left"><div class="item-title">Step ${idx + 1}: ${esc(step.ingredient || '')}</div><div class="muted">Result: ${esc(step.result || '')} ${step.notes ? `· ${esc(step.notes)}` : ''}</div></div><button class="danger-btn" data-delete-step="${moduleId}:${chain.id}:${step.id}">×</button></div>`).join('') || `<div class="muted">No steps yet.</div>`}${chain.notes ? `<div class="notes-box">${esc(chain.notes).replace(/\n/g, '<br>')}</div>` : ''}</div></div>`;
+    return `<details class="recipe-card collapsible-card">
+      <summary>
+        <div class="card-collapsible-main">
+          <div class="recipe-title">${esc(chain.name || 'Untitled Chain')}</div>
+          <div class="recipe-meta">
+            ${chain.startProduct ? `<span class="stat-chip">Start: ${esc(chain.startProduct)}</span>` : ''}
+            ${finalProduct ? `<span class="stat-chip">Final: ${esc(finalProduct)}</span>` : ''}
+            ${chain.sellPrice ? `<span class="stat-chip">Sell: ${esc(chain.sellPrice)}</span>` : ''}
+            <span class="stat-chip">${stepCount} Steps</span>
+          </div>
+        </div>
+        <div class="summary-hint">Open</div>
+      </summary>
+      <div class="card-collapsible-body">
+        <div class="row-actions">
+          <button class="ghost-btn" data-edit-chain="${moduleId}:${chain.id}">Edit</button>
+          <button class="gold-btn" data-add-step="${moduleId}:${chain.id}">+ Step</button>
+          <button class="danger-btn" data-delete-chain="${moduleId}:${chain.id}">Delete</button>
+        </div>
+        ${(chain.notes || '').trim() ? `<div class="notes-box">${esc(chain.notes).replace(/
+/g, '<br>')}</div>` : ''}
+        <div class="compact-list">
+          ${(chain.steps || []).map((step, idx) => `<div class="compact-row">
+            <div class="compact-row-main">
+              <div class="compact-row-title">Step ${idx + 1}: ${esc(step.ingredient || '')}</div>
+              <div class="compact-row-meta">${esc(step.result || '')}${step.notes ? ` · ${esc(step.notes)}` : ''}</div>
+            </div>
+            <button class="danger-btn iconish-btn" data-delete-step="${moduleId}:${chain.id}:${step.id}">×</button>
+          </div>`).join('') || `<div class="muted">No steps yet.</div>`}
+        </div>
+      </div>
+    </details>`;
   }
 
   return { cardMarkup, subCardMarkup, profileRowMarkup, serverRowMarkup, archiveRowMarkup, renderModuleMarkup };

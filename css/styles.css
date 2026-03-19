@@ -129,3 +129,38 @@ textarea{min-height:110px;resize:vertical}
 }
 
 .tracker-entry-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}
+
+
+/* Mobile refinement patch */
+.collapsible-card summary{list-style:none;cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.collapsible-card summary::-webkit-details-marker{display:none}
+.card-collapsible-main{display:flex;flex-direction:column;gap:8px;min-width:0;flex:1}
+.card-collapsible-body{display:flex;flex-direction:column;gap:12px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(212,175,55,.10)}
+.summary-hint{font-size:.84rem;color:var(--muted);white-space:nowrap;align-self:center}
+.row-actions{display:flex;gap:8px;flex-wrap:wrap}
+.compact-list{display:flex;flex-direction:column;gap:8px}
+.compact-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid rgba(212,175,55,.10);background:linear-gradient(180deg, rgba(30,24,42,.96), rgba(19,15,28,.96))}
+.compact-row-main{min-width:0;display:flex;flex-direction:column;gap:2px}
+.compact-row-title{font-weight:700}
+.compact-row-meta{color:var(--muted);font-size:.92rem}
+.iconish-btn{min-width:44px;padding:8px 10px}
+.module-header-text{flex:1;min-width:0}
+@media (max-width:720px){
+  .main{padding:12px}
+  .panel{padding:14px;border-radius:22px}
+  .module{padding:12px;gap:10px}
+  .section-head,.module-head{align-items:flex-start;flex-direction:column}
+  .section-head .inline-actions,.module-head .inline-actions{width:100%;justify-content:flex-end}
+  .section-head .inline-actions > *, .module-head .inline-actions > *{flex:0 0 auto}
+  .recipe-card,.step-card{padding:12px;border-radius:18px}
+  .recipe-title,.step-title{font-size:1rem;line-height:1.15}
+  .recipe-meta{gap:6px}
+  .stat-chip{padding:5px 8px;font-size:.78rem}
+  .inline-actions,.recipe-actions,.step-actions,.row-actions{gap:6px}
+  .inline-actions > button,.recipe-actions > button,.step-actions > button,.row-actions > button{padding:8px 10px;font-size:.92rem}
+  .gold-btn,.ghost-btn,.danger-btn{border-radius:14px}
+  .compact-row{padding:9px 10px}
+  .compact-row-meta{font-size:.88rem}
+  .notes-box{min-height:0;padding:10px 12px}
+  .card-collapsible-body{margin-top:10px;padding-top:10px}
+}
