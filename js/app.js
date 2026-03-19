@@ -2,7 +2,7 @@
 (async function(){
   const { id, slug, cap, esc, gid } = window.GCUtils;
   const Storage = window.GCStorage;
-  const UI = window.GCUI || window.UI || {};
+  const UI = window.GCUI;
   const Mods = window.GCModules;
 
   const TAXONOMY_TYPES = Object.keys(Mods.TRACKER_DEFS);
@@ -57,7 +57,6 @@
   window.GCApp = { categoryById, gameById, profileById, serverById, profilesForGame, serversForGame, modulesFor };
 
   bindGlobal();
-  if (!UI.renderModuleMarkup) { showBootError('UI layer missing renderModuleMarkup; patched fallback active.'); }
   render();
 
   function seedState(){
@@ -217,7 +216,7 @@
     const p = profileById(id); if (!p) return navigate('home');
     touchRecent('profile', p.id);
     const g = gameById(p.gameId), mods = modulesFor('profile', p.id);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Profile chamber</div><h2 class="hero-title">${esc(p.name)}</h2><div class="tag-row"><span class="stat-chip">${esc(p.type || 'Profile')}</span><span class="stat-chip">${cap(p.status || 'active')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editProfileBtn" class="ghost-btn">Edit</button><button id="cloneProfileBtn" class="ghost-btn">Clone</button><button id="archiveProfileBtn" class="danger-btn">${p.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Modules</h3><div class="muted">Additive expansion only — all original systems preserved.</div></div><div class="inline-actions"><button id="addPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(m => (UI.renderModuleMarkup ? UI.renderModuleMarkup(m) : '')).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Profile chamber</div><h2 class="hero-title">${esc(p.name)}</h2><div class="tag-row"><span class="stat-chip">${esc(p.type || 'Profile')}</span><span class="stat-chip">${cap(p.status || 'active')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editProfileBtn" class="ghost-btn">Edit</button><button id="cloneProfileBtn" class="ghost-btn">Clone</button><button id="archiveProfileBtn" class="danger-btn">${p.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Modules</h3><div class="muted">Additive expansion only — all original systems preserved.</div></div><div class="inline-actions"><button id="addPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(UI.renderModuleMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
     gid('editProfileBtn').onclick = () => openProfileForm(p.gameId, p);
     gid('cloneProfileBtn').onclick = () => cloneProfile(p);
     gid('archiveProfileBtn').onclick = () => { p.archived = !p.archived; persist(); navigate(p.archived ? 'archive' : 'profile', p.id); };
@@ -230,7 +229,7 @@
     const s = serverById(id); if (!s) return navigate('home');
     touchRecent('server', s.id);
     const g = gameById(s.gameId), mods = modulesFor('server', s.id);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Server chamber</div><h2 class="hero-title">${esc(s.name)}</h2><div class="tag-row"><span class="stat-chip">Server</span><span class="stat-chip">${esc(s.template || 'Blank')}</span><span class="stat-chip">${cap(s.status || 'planning')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editServerBtn" class="ghost-btn">Edit</button><button id="cloneServerBtn" class="ghost-btn">Clone</button><button id="archiveServerBtn" class="danger-btn">${s.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Server Modules</h3><div class="muted">Works independently or alongside every other module.</div></div><div class="inline-actions"><button id="addServerPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addServerModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(m => (UI.renderModuleMarkup ? UI.renderModuleMarkup(m) : '')).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Server chamber</div><h2 class="hero-title">${esc(s.name)}</h2><div class="tag-row"><span class="stat-chip">Server</span><span class="stat-chip">${esc(s.template || 'Blank')}</span><span class="stat-chip">${cap(s.status || 'planning')}</span><span class="stat-chip">${esc(g?.title || '')}</span></div></div><div class="inline-actions"><button id="editServerBtn" class="ghost-btn">Edit</button><button id="cloneServerBtn" class="ghost-btn">Clone</button><button id="archiveServerBtn" class="danger-btn">${s.archived ? 'Restore' : 'Archive'}</button></div></div></section><section class="panel"><div class="section-head"><div class="panel-title"><h3>Server Modules</h3><div class="muted">Works independently or alongside every other module.</div></div><div class="inline-actions"><button id="addServerPresetModuleBtn" class="ghost-btn">+ From Preset</button><button id="addServerModuleBtn" class="gold-btn">+ Add Module</button></div></div><div class="list" style="margin-top:14px">${mods.map(UI.renderModuleMarkup).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No modules yet.</div></div></div>`}</div></section>`;
     gid('editServerBtn').onclick = () => openServerForm(s.gameId, s);
     gid('cloneServerBtn').onclick = () => cloneServer(s);
     gid('archiveServerBtn').onclick = () => { s.archived = !s.archived; persist(); navigate(s.archived ? 'archive' : 'server', s.id); };
