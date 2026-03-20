@@ -2,7 +2,7 @@
 (async function(){
   const { id, slug, cap, esc, gid } = window.GCUtils;
   const Storage = window.GCStorage;
-  const UI = window.GCUI || window.UI || {};
+  const UI = window.UI || window.GCUI || {};
   const Mods = window.GCModules;
 
   const TAXONOMY_TYPES = Object.keys(Mods.TRACKER_DEFS);
@@ -139,13 +139,7 @@
   }
 
   function renderHome(){
-    const recent = state.ui.recent.map(tok => {
-      const [k,v] = tok.split(':');
-      if (k === 'game') { const g = gameById(v); return g ? safeUI.cardMarkup(g, window.GCApp) : ''; }
-      if (k === 'profile') { const p = profileById(v); return p ? safeUI.subCardMarkup('Profile', p.name, gameById(p.gameId)?.title || '') : ''; }
-      if (k === 'server') { const s = serverById(v); return s ? safeUI.subCardMarkup('Server', s.name, gameById(s.gameId)?.title || '') : ''; }
-      return '';
-    }).join('') || `<div class="card"><h3>No recent views yet</h3><div class="muted">Open a game, profile, or server and it’ll pin here.</div></div>`;
+    const lastEditedCard = renderLastEditedCard();
 
     const activeGames = state.games.filter(g => !g.archived);
     el.view.innerHTML = `
@@ -169,8 +163,8 @@
         <div class="kpi"><div class="muted">Module Types</div><div class="kpi-value">${4 + 2 + TAXONOMY_TYPES.length}</div></div>
       </section>
       <section class="panel">
-        <div class="panel-title"><h3>Recent 3</h3><div class="muted">Fast jump back in.</div></div>
-        <div class="grid" style="margin-top:14px">${recent}</div>
+        <div class="panel-title"><h3>Last Edited</h3><div class="muted">Jump back to the last thing you changed.</div></div>
+        <div class="grid" style="margin-top:14px">${lastEditedCard}</div>
       </section>
       <section class="panel">
         <div class="panel-title"><h3>Find Games</h3><div class="muted">Search, filter, sort.</div></div>
@@ -195,7 +189,7 @@
       if (sort === 'title') list.sort((a,b) => a.title.localeCompare(b.title));
       if (sort === 'profiles') list.sort((a,b) => profilesForGame(b.id).length - profilesForGame(a.id).length);
       if (sort === 'servers') list.sort((a,b) => serversForGame(b.id).length - serversForGame(a.id).length);
-      gid('homeResults').innerHTML = list.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
+      gid('homeResults').innerHTML = list.map(g => safesafeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
       bindDynamic();
     }
   }
@@ -203,7 +197,7 @@
   function renderCategory(id){
     const c = categoryById(id); if (!c) return navigate('home');
     const games = state.games.filter(g => g.categoryId === id && !g.archived);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => safesafeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
     gid('editCategoryBtn').onclick = () => openCategoryForm(c);
     gid('addGameToCategoryBtn').onclick = () => openGameForm(null, { categoryId:c.id });
     bindDynamic();
@@ -249,7 +243,7 @@
   }
 
   function renderArchive(){
-    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => safeUI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => safeUI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => safeUI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => safesafeUI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => safesafeUI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => safesafeUI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
     bindDynamic();
   }
 
@@ -300,7 +294,7 @@
       const [mid,rid] = b.dataset.deleteRecipe.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; m.recipes = m.recipes.filter(r => r.id !== rid); persist(); render();
     });
     document.querySelectorAll('[data-add-ingredient]').forEach(b => b.onclick = () => {
-      const [mid,rid] = b.dataset.addIngredient.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const recipe = m.recipes.find(r => r.id === rid); if (recipe) openIngredientForm(recipe);
+      const [mid,rid] = b.dataset.addIngredient.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const recipe = m.recipes.find(r => r.id === rid); if (recipe) openIngredientForm(recipe, m);
     });
     document.querySelectorAll('[data-delete-ingredient]').forEach(b => b.onclick = () => {
       const [mid,rid,iid] = b.dataset.deleteIngredient.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const recipe = m.recipes.find(r => r.id === rid); if (!recipe) return; recipe.ingredients = recipe.ingredients.filter(i => i.id !== iid); persist(); render();
@@ -314,7 +308,7 @@
       const [mid,cid] = b.dataset.deleteChain.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; m.chains = m.chains.filter(c => c.id !== cid); persist(); render();
     });
     document.querySelectorAll('[data-add-step]').forEach(b => b.onclick = () => {
-      const [mid,cid] = b.dataset.addStep.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const chain = m.chains.find(c => c.id === cid); if (chain) openStepForm(chain);
+      const [mid,cid] = b.dataset.addStep.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const chain = m.chains.find(c => c.id === cid); if (chain) openStepForm(chain, m);
     });
     document.querySelectorAll('[data-delete-step]').forEach(b => b.onclick = () => {
       const [mid,cid,sid] = b.dataset.deleteStep.split(':'); const m = state.modules.find(x => x.id === mid); if (!m) return; const chain = m.chains.find(c => c.id === cid); if (!chain) return; chain.steps = chain.steps.filter(s => s.id !== sid); persist(); render();
@@ -358,6 +352,7 @@
       const p = { title:gid('gameTitleInput').value.trim(), categoryId:gid('gameCategoryInput').value, status:gid('gameStatusInput').value, supportsProfiles:gid('gameProfilesToggle').checked, supportsServers:gid('gameServersToggle').checked, favorite:gid('gameFavoriteToggle').checked, archived:g?.archived || false, steamAppId:g?.steamAppId || '', banner:g?.banner || '' };
       if (!p.title) return;
       if (g) Object.assign(g, p); else state.games.push({ id:id(), ...p });
+      setLastEdited('game', g ? g.id : state.games[state.games.length - 1].id);
       persist(); closeModal(); render();
     };
     if (g) gid('deleteGameBtn').onclick = () => {
@@ -380,6 +375,7 @@
       const data = { gameId, name:gid('profileNameInput').value.trim(), type:gid('profileTypeInput').value, status:gid('profileStatusInput').value, archived:p?.archived || false, favorite:p?.favorite || false };
       if (!data.name) return;
       if (p) Object.assign(p, data); else state.profiles.push({ id:id(), ...data });
+      setLastEdited('profile', p ? p.id : state.profiles[state.profiles.length - 1].id);
       persist(); closeModal(); render();
     };
     if (p) gid('deleteProfileBtn').onclick = () => {
@@ -396,6 +392,7 @@
       const data = { gameId, name:gid('serverNameInput').value.trim(), template:gid('serverTemplateInput').value, status:gid('serverStatusInput').value, archived:s?.archived || false, favorite:s?.favorite || false };
       if (!data.name) return;
       if (s) Object.assign(s, data); else state.servers.push({ id:id(), ...data });
+      setLastEdited('server', s ? s.id : state.servers[state.servers.length - 1].id);
       persist(); closeModal(); render();
     };
     if (s) gid('deleteServerBtn').onclick = () => {
@@ -502,16 +499,18 @@
       const data = { id:recipe?.id || id(), name:gid('recipeNameInput').value.trim(), base:gid('recipeBaseInput').value.trim(), quantity:gid('recipeQtyInput').value.trim(), notes:gid('recipeNotesInput').value.trim(), ingredients:recipe?.ingredients || [] };
       if (!data.name) return;
       if (recipe) Object.assign(recipe, data); else m.recipes.push(data);
+      setLastEdited(m.ownerType, m.ownerId);
       persist(); closeModal(); render();
     };
   }
 
-  function openIngredientForm(recipe){
+  function openIngredientForm(recipe, modRef=null){
     openModal(`<div class="modal-shell"><div class="modal-head"><h3>+ Ingredient</h3></div><div class="modal-body"><div class="field-grid"><label><div class="small-note">Ingredient</div><input id="ingredientNameInput" /></label><label><div class="small-note">Percent</div><input id="ingredientPercentInput" type="number" /></label></div><label><div class="small-note">Notes</div><input id="ingredientNotesInput" /></label><div class="modal-actions"><span></span><div class="modal-right-actions"><button id="closeModalBtn" class="ghost-btn">Cancel</button><button id="saveIngredientBtn" class="gold-btn">Add</button></div></div></div></div>`);
     gid('closeModalBtn').onclick = closeModal;
     gid('saveIngredientBtn').onclick = () => {
       const name = gid('ingredientNameInput').value.trim(); if (!name) return;
       recipe.ingredients.push({ id:id(), name, percent:Number(gid('ingredientPercentInput').value || 0), notes:gid('ingredientNotesInput').value.trim() });
+      if (modRef) setLastEdited(modRef.ownerType, modRef.ownerId);
       persist(); closeModal(); render();
     };
   }
@@ -523,17 +522,19 @@
       const data = { id:chain?.id || id(), name:gid('chainNameInput').value.trim(), startProduct:gid('chainStartInput').value.trim(), finalProduct:gid('chainFinalInput').value.trim(), sellPrice:gid('chainSellInput').value.trim(), notes:gid('chainNotesInput').value.trim(), steps:chain?.steps || [] };
       if (!data.name) return;
       if (chain) Object.assign(chain, data); else m.chains.push(data);
+      setLastEdited(m.ownerType, m.ownerId);
       persist(); closeModal(); render();
     };
   }
 
-  function openStepForm(chain){
+  function openStepForm(chain, modRef=null){
     openModal(`<div class="modal-shell"><div class="modal-head"><h3>+ Step</h3></div><div class="modal-body"><div class="field-grid"><label><div class="small-note">Ingredient Added</div><input id="stepIngredientInput" /></label><label><div class="small-note">Result After This Step</div><input id="stepResultInput" /></label></div><label><div class="small-note">Notes</div><textarea id="stepNotesInput"></textarea></label><div class="modal-actions"><span></span><div class="modal-right-actions"><button id="closeModalBtn" class="ghost-btn">Cancel</button><button id="saveStepBtn" class="gold-btn">Add</button></div></div></div></div>`);
     gid('closeModalBtn').onclick = closeModal;
     gid('saveStepBtn').onclick = () => {
       const ingredient = gid('stepIngredientInput').value.trim(); const result = gid('stepResultInput').value.trim();
       if (!ingredient || !result) return;
       chain.steps.push({ id:id(), ingredient, result, notes:gid('stepNotesInput').value.trim() });
+      if (modRef) setLastEdited(modRef.ownerType, modRef.ownerId);
       persist(); closeModal(); render();
     };
   }
@@ -550,6 +551,7 @@
       });
       if (!data[def.fields[0].key]) return;
       if (entry) Object.assign(entry, data); else mod.entries.unshift(data);
+      setLastEdited(mod.ownerType, mod.ownerId);
       persist(); closeModal(); render();
     };
   }
@@ -584,9 +586,39 @@
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
   async function persist(){ await Storage.setState(state); }
 
-  function touchRecent(type, idValue){
+  
+  function setLastEdited(type, idValue){
+    if (!idValue) return;
+    state.ui.lastEdited = { type, id: idValue, ts: Date.now() };
+    persist();
+  }
+
+  function renderLastEditedCard(){
+    const item = state.ui?.lastEdited;
+    if (!item || !item.type || !item.id) {
+      return `<div class="card"><h3>No last edited item yet</h3><div class="muted">When you save a game, profile, or server, it’ll show up here.</div></div>`;
+    }
+    if (item.type === 'game') {
+      const g = gameById(item.id);
+      if (!g) return `<div class="card"><h3>No last edited item yet</h3></div>`;
+      return `<article class="card last-edited-card"><div class="eyebrow">Last Edited: Game</div><h3>${esc(g.title)}</h3><div class="meta">${esc(categoryById(g.categoryId)?.name || '')}</div><div style="margin-top:auto"><button class="gold-btn" data-open-game="${g.id}">View</button></div></article>`;
+    }
+    if (item.type === 'profile') {
+      const p = profileById(item.id);
+      if (!p) return `<div class="card"><h3>No last edited item yet</h3></div>`;
+      return `<article class="card last-edited-card"><div class="eyebrow">Last Edited: Profile</div><h3>${esc(p.name)}</h3><div class="meta">${esc(gameById(p.gameId)?.title || '')}</div><div style="margin-top:auto"><button class="gold-btn" data-open-profile="${p.id}">View</button></div></article>`;
+    }
+    if (item.type === 'server') {
+      const s = serverById(item.id);
+      if (!s) return `<div class="card"><h3>No last edited item yet</h3></div>`;
+      return `<article class="card last-edited-card"><div class="eyebrow">Last Edited: Server</div><h3>${esc(s.name)}</h3><div class="meta">${esc(gameById(s.gameId)?.title || '')}</div><div style="margin-top:auto"><button class="gold-btn" data-open-server="${s.id}">View</button></div></article>`;
+    }
+    return `<div class="card"><h3>No last edited item yet</h3></div>`;
+  }
+
+function touchRecent(type, idValue){
     const tok = `${type}:${idValue}`;
-    state.ui.recent = [tok, ...state.ui.recent.filter(x => x !== tok)].slice(0, 3);
+    state.ui.recent = [tok, ...state.ui.recent.filter(x => x !== tok)].slice(0, 1);
     persist();
   }
 
