@@ -1,113 +1,11 @@
 
-// ===== DEBUG LOGGER CORE =====
-window.__DEBUG_LOGS__ = [];
-
-function pushLog(type, args) {
-  const entry = {
-    type,
-    args: args.map(a => {
-      try {
-        return typeof a === 'object'
-          ? JSON.stringify(a)
-          : String(a);
-      } catch {
-        return '[unserializable]';
-      }
-    }),
-    time: new Date().toISOString()
-  };
-
-  window.__DEBUG_LOGS__.push(entry);
-
-  if (window.__DEBUG_LOGS__.length > 200) {
-    window.__DEBUG_LOGS__.shift();
-  }
-
-  renderDebugConsole();
-}
-
-['log', 'warn', 'error'].forEach(type => {
-  const original = console[type];
-  console[type] = (...args) => {
-    pushLog(type, args);
-    original.apply(console, args);
-  };
-});
-
-window.onerror = function (msg, src, line, col, err) {
-  pushLog('error', [
-    'GLOBAL ERROR:',
-    msg,
-    `${src}:${line}:${col}`,
-    err && err.stack
-  ]);
-};
-
-window.onunhandledrejection = function (e) {
-  pushLog('error', [
-    'PROMISE ERROR:',
-    e.reason && e.reason.stack ? e.reason.stack : e.reason
-  ]);
-};
-
-function renderDebugConsole() {
-  let el = document.getElementById('debug-console');
-
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'debug-console';
-
-    el.style.position = 'fixed';
-    el.style.bottom = '0';
-    el.style.left = '0';
-    el.style.right = '0';
-    el.style.maxHeight = '40%';
-    el.style.overflowY = 'auto';
-    el.style.background = 'rgba(0,0,0,0.9)';
-    el.style.color = '#0f0';
-    el.style.fontSize = '12px';
-    el.style.zIndex = '99999';
-    el.style.padding = '8px';
-
-    document.body.appendChild(el);
-  }
-
-  el.innerHTML = window.__DEBUG_LOGS__
-    .map(l => `
-      <div style="margin-bottom:4px;">
-        <b>[${l.type}]</b> ${l.time}<br/>
-        ${l.args.join(' ')}
-      </div>
-    `)
-    .join('');
-}
-
-(function addDebugToggle() {
-  const btn = document.createElement('button');
-  btn.textContent = '⚙️';
-  btn.style.position = 'fixed';
-  btn.style.bottom = '80px';
-  btn.style.right = '20px';
-  btn.style.zIndex = '100000';
-
-  btn.onclick = () => {
-    const el = document.getElementById('debug-console');
-    if (el) {
-      el.style.display = el.style.display === 'none' ? 'block' : 'none';
-    }
-  };
-
-  document.body.appendChild(btn);
-})();
-
-
 (async function(){
   const { id, slug, cap, esc, gid, clone } = window.GCUtils;
   const Storage = window.GCStorage;
   const UI = window.UI || window.GCUI || {};
   const Mods = window.GCModules;
 
-  const TAXONOMY_TYPES = Object.keys(Mods.TRACKER_DEFS);
+  const TAXONOMY_TYPES = Object.keys(Mods?.TRACKER_DEFS || {});
 
   const safeUI = {
     cardMarkup: (...args) => (UI.cardMarkup ? UI.cardMarkup(...args) : `<article class="card"><h3>Card</h3></article>`),
@@ -149,7 +47,7 @@ function renderDebugConsole() {
     defaultState.presets.push({ id:id(), name: Mods.TRACKER_DEFS[t].label, moduleType:t, entries:[], view:{filter:'',sort:'recent'} });
   });
 
-  let state = normalizeState(await Storage.migrateFromLocalStorage(clone(defaultState)));
+  let state = await safeLoadState();
   if (!state.games.length) seedState();
 
   const el = {
@@ -170,6 +68,22 @@ function renderDebugConsole() {
 
   bindGlobal();
   render();
+
+
+  async function safeLoadState(){
+    const fallback = normalizeState(clone(defaultState));
+
+    try {
+      if (!Storage || typeof Storage.migrateFromLocalStorage !== 'function') {
+        throw new Error('Storage module unavailable');
+      }
+      const loaded = await Storage.migrateFromLocalStorage(clone(defaultState));
+      return normalizeState(loaded);
+    } catch (err) {
+      console.warn('Boot state load failed, using default state.', err);
+      return fallback;
+    }
+  }
 
   function seedState(){
     const dds = {id:id(),title:'Drug Dealer Simulator',categoryId:state.categories[3].id,favorite:true,archived:false,supportsProfiles:true,supportsServers:false,status:'active',steamAppId:'',banner:''};
@@ -238,7 +152,6 @@ function renderDebugConsole() {
     else if (r.name === 'presets') renderPresets();
     else if (r.name === 'settings') renderSettings();
     else renderHome();
-    persist();
   }
 
   function renderSidebar(){
@@ -711,24 +624,57 @@ function renderDebugConsole() {
     r.readAsText(f);
   }
 
-  function navigate(name, id=null){ state.route = { name, id }; persist(); closeSidebar(); render(); }
+  function navigate(name, id=null){ state.route = { name, id }; closeSidebar(); render(); }
   function toggleSidebar(){ el.sidebar.classList.toggle('open'); el.scrim.classList.toggle('show'); }
   function closeSidebar(){ el.sidebar.classList.remove('open'); el.scrim.classList.remove('show'); }
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
+  let persistChain = Promise.resolve();
+
+  function makeSerializable(value, seen = new WeakSet()){
+    if (value == null) return value;
+    if (typeof value === 'function' || typeof value === 'symbol') return undefined;
+    if (typeof Node !== 'undefined' && value instanceof Node) return undefined;
+    if (typeof value !== 'object') return value;
+    if (seen.has(value)) return undefined;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      return value.map(item => makeSerializable(item, seen)).filter(item => item !== undefined);
+    }
+    const out = {};
+    Object.keys(value).forEach(key => {
+      const next = makeSerializable(value[key], seen);
+      if (next !== undefined) out[key] = next;
+    });
+    return out;
+  }
+
   async function persist(){
     state = normalizeState(state);
+    let snapshot;
     try {
-      await Storage.setState(state);
+      snapshot = makeSerializable(state);
     } catch (err) {
-      showBootError(formatError('Save failed', err));
+      showBootError(formatError('Save snapshot failed', err));
+      return false;
     }
+    persistChain = persistChain
+      .catch(() => {})
+      .then(async () => {
+        try {
+          await Storage.setState(snapshot);
+        } catch (err) {
+          showBootError(formatError('Save failed', err));
+          throw err;
+        }
+      });
+    await persistChain.catch(() => {});
+    return true;
   }
 
   
   function setLastEdited(type, idValue){
     if (!idValue) return;
     state.ui.lastEdited = { type, id: idValue, ts: Date.now() };
-    persist();
   }
 
   function renderLastEditedCard(){
@@ -757,7 +703,6 @@ function renderDebugConsole() {
 function touchRecent(type, idValue){
     const tok = `${type}:${idValue}`;
     state.ui.recent = [tok, ...state.ui.recent.filter(x => x !== tok)].slice(0, 1);
-    persist();
   }
 
   function categoryById(idValue){ return state.categories.find(c => c.id === idValue); }
@@ -768,8 +713,35 @@ function touchRecent(type, idValue){
   function serversForGame(gameId){ return state.servers.filter(s => s.gameId === gameId); }
   function modulesFor(type, ownerId){ return state.modules.filter(m => m.ownerType === type && m.ownerId === ownerId); }
 
-  function openModal(html){ el.modal.innerHTML = html; el.modal.showModal(); }
-  function closeModal(){ el.modal.close(); el.modal.innerHTML = ''; }
+  function openModal(html){
+    if (!el.modal) return;
+    el.modal.innerHTML = html;
+    try {
+      if (typeof el.modal.showModal === 'function') {
+        if (!el.modal.open) el.modal.showModal();
+      } else {
+        el.modal.setAttribute('open', 'open');
+      }
+    } catch (err) {
+      console.warn('Modal open fallback used.', err);
+      el.modal.setAttribute('open', 'open');
+    }
+  }
+
+  function closeModal(){
+    if (!el.modal) return;
+    try {
+      if (typeof el.modal.close === 'function') {
+        if (el.modal.open) el.modal.close();
+      } else {
+        el.modal.removeAttribute('open');
+      }
+    } catch (err) {
+      console.warn('Modal close fallback used.', err);
+      el.modal.removeAttribute('open');
+    }
+    el.modal.innerHTML = '';
+  }
 })().catch(err => {
   console.error(err);
   const node = document.getElementById('bootError');
