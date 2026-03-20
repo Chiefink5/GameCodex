@@ -13,9 +13,38 @@ window.GCStorage = (() => {
     'gameCodexV12_1'
   ];
 
+  function getLocalStorage(){
+    try {
+      if (typeof localStorage === 'undefined') return null;
+      return localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  function safeGetItem(key){
+    try {
+      const store = getLocalStorage();
+      return store ? store.getItem(key) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function safeSetItem(key, value){
+    try {
+      const store = getLocalStorage();
+      if (!store) return false;
+      store.setItem(key, value);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function readFallback(){
     try {
-      const raw = localStorage.getItem(FALLBACK_KEY);
+      const raw = safeGetItem(FALLBACK_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
@@ -23,12 +52,7 @@ window.GCStorage = (() => {
   }
 
   function writeFallback(state){
-    try {
-      localStorage.setItem(FALLBACK_KEY, JSON.stringify(state));
-      return true;
-    } catch {
-      return false;
-    }
+    return safeSetItem(FALLBACK_KEY, JSON.stringify(state));
   }
 
   function openDB(){
@@ -93,7 +117,7 @@ window.GCStorage = (() => {
     if (current) return current;
 
     for (const key of [FALLBACK_KEY].concat(OLD_KEYS)) {
-      const raw = localStorage.getItem(key);
+      const raw = safeGetItem(key);
       if (!raw) continue;
       try {
         const merged = Object.assign(window.GCUtils.clone(defaultState), JSON.parse(raw));

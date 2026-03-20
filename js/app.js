@@ -5,7 +5,7 @@
   const UI = window.UI || window.GCUI || {};
   const Mods = window.GCModules;
 
-  const TAXONOMY_TYPES = Object.keys(Mods.TRACKER_DEFS);
+  const TAXONOMY_TYPES = Object.keys(Mods?.TRACKER_DEFS || {});
 
   const safeUI = {
     cardMarkup: (...args) => (UI.cardMarkup ? UI.cardMarkup(...args) : `<article class="card"><h3>Card</h3></article>`),
@@ -47,7 +47,7 @@
     defaultState.presets.push({ id:id(), name: Mods.TRACKER_DEFS[t].label, moduleType:t, entries:[], view:{filter:'',sort:'recent'} });
   });
 
-  let state = normalizeState(await Storage.migrateFromLocalStorage(clone(defaultState)));
+  let state = await safeLoadState();
   if (!state.games.length) seedState();
 
   const el = {
@@ -68,6 +68,22 @@
 
   bindGlobal();
   render();
+
+
+  async function safeLoadState(){
+    const fallback = normalizeState(clone(defaultState));
+
+    try {
+      if (!Storage || typeof Storage.migrateFromLocalStorage !== 'function') {
+        throw new Error('Storage module unavailable');
+      }
+      const loaded = await Storage.migrateFromLocalStorage(clone(defaultState));
+      return normalizeState(loaded);
+    } catch (err) {
+      console.warn('Boot state load failed, using default state.', err);
+      return fallback;
+    }
+  }
 
   function seedState(){
     const dds = {id:id(),title:'Drug Dealer Simulator',categoryId:state.categories[3].id,favorite:true,archived:false,supportsProfiles:true,supportsServers:false,status:'active',steamAppId:'',banner:''};
