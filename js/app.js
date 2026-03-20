@@ -1,6 +1,6 @@
 
 (async function(){
-  const { id, slug, cap, esc, gid } = window.GCUtils;
+  const { id, slug, cap, esc, gid, clone } = window.GCUtils;
   const Storage = window.GCStorage;
   const UI = window.UI || window.GCUI || {};
   const Mods = window.GCModules;
@@ -47,7 +47,7 @@
     defaultState.presets.push({ id:id(), name: Mods.TRACKER_DEFS[t].label, moduleType:t, entries:[], view:{filter:'',sort:'recent'} });
   });
 
-  let state = normalizeState(await Storage.migrateFromLocalStorage(structuredClone(defaultState)));
+  let state = normalizeState(await Storage.migrateFromLocalStorage(clone(defaultState)));
   if (!state.games.length) seedState();
 
   const el = {
@@ -108,7 +108,13 @@
     el.exportBtn.onclick = exportData;
     el.importInput.onchange = importData;
     document.querySelectorAll('.nav-btn').forEach(btn => btn.onclick = () => navigate(btn.dataset.route));
-    window.addEventListener('error', (e) => showBootError('App error: ' + e.message));
+    window.addEventListener('error', (e) => showBootError(formatError('App error', e.error || e.message || e)));
+    window.addEventListener('unhandledrejection', (e) => showBootError(formatError('Unhandled promise rejection', e.reason)));
+  }
+
+  function formatError(prefix, err){
+    const msg = err?.stack || err?.message || String(err || 'Unknown error');
+    return `${prefix}: ${msg}`;
   }
 
   function showBootError(msg){
@@ -414,7 +420,7 @@
 
 
   function normalizeState(nextState){
-    const merged = Object.assign(structuredClone(defaultState), nextState || {});
+    const merged = Object.assign(clone(defaultState), nextState || {});
     merged.theme = Object.assign({}, defaultState.theme, merged.theme || {});
     merged.route = Object.assign({}, defaultState.route, merged.route || {});
     merged.ui = Object.assign({ recent: [], lastEdited: null }, merged.ui || {});
@@ -458,7 +464,7 @@
     if (m){
       gid('deleteModuleBtn').onclick = () => { state.modules = state.modules.filter(x => x.id !== m.id); persist(); closeModal(); render(); };
       gid('saveAsPresetBtn').onclick = () => {
-        const preset = structuredClone(m); preset.id = id(); delete preset.ownerId; delete preset.ownerType; preset.name = m.title;
+        const preset = clone(m); preset.id = id(); delete preset.ownerId; delete preset.ownerType; preset.name = m.title;
         state.presets.push(preset); persist(); closeModal(); render();
       };
     }
@@ -469,7 +475,7 @@
     gid('closeModalBtn').onclick = closeModal;
     document.querySelectorAll('[data-use-preset]').forEach(btn => btn.onclick = () => {
       const p = state.presets.find(x => x.id === btn.dataset.usePreset); if (!p) return;
-      const fresh = structuredClone(p);
+      const fresh = clone(p);
       fresh.id = id(); fresh.ownerType = ownerType; fresh.ownerId = ownerId; fresh.title = p.name;
       delete fresh.name;
       ensureModuleShape(fresh);
@@ -580,14 +586,14 @@
   }
 
   function cloneProfile(p){
-    const copy = structuredClone(p); copy.id = id(); copy.name = `${p.name} Copy`; copy.archived = false; state.profiles.push(copy);
-    modulesFor('profile', p.id).forEach(m => { const c = structuredClone(m); c.id = id(); c.ownerId = copy.id; state.modules.push(c); });
+    const copy = clone(p); copy.id = id(); copy.name = `${p.name} Copy`; copy.archived = false; state.profiles.push(copy);
+    modulesFor('profile', p.id).forEach(m => { const c = clone(m); c.id = id(); c.ownerId = copy.id; state.modules.push(c); });
     persist(); navigate('profile', copy.id);
   }
 
   function cloneServer(s){
-    const copy = structuredClone(s); copy.id = id(); copy.name = `${s.name} Copy`; copy.archived = false; state.servers.push(copy);
-    modulesFor('server', s.id).forEach(m => { const c = structuredClone(m); c.id = id(); c.ownerId = copy.id; state.modules.push(c); });
+    const copy = clone(s); copy.id = id(); copy.name = `${s.name} Copy`; copy.archived = false; state.servers.push(copy);
+    modulesFor('server', s.id).forEach(m => { const c = clone(m); c.id = id(); c.ownerId = copy.id; state.modules.push(c); });
     persist(); navigate('server', copy.id);
   }
 
@@ -599,7 +605,7 @@
   function importData(e){
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = async () => { try { state = normalizeState(Object.assign(structuredClone(defaultState), JSON.parse(r.result))); await persist(); render(); } catch { alert('Import failed.'); } };
+    r.onload = async () => { try { state = normalizeState(Object.assign(clone(defaultState), JSON.parse(r.result))); await persist(); render(); } catch { alert('Import failed.'); } };
     r.readAsText(f);
   }
 
@@ -607,7 +613,14 @@
   function toggleSidebar(){ el.sidebar.classList.toggle('open'); el.scrim.classList.toggle('show'); }
   function closeSidebar(){ el.sidebar.classList.remove('open'); el.scrim.classList.remove('show'); }
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
-  async function persist(){ state = normalizeState(state); await Storage.setState(state); }
+  async function persist(){
+    state = normalizeState(state);
+    try {
+      await Storage.setState(state);
+    } catch (err) {
+      showBootError(formatError('Save failed', err));
+    }
+  }
 
   
   function setLastEdited(type, idValue){
@@ -658,6 +671,6 @@ function touchRecent(type, idValue){
 })().catch(err => {
   console.error(err);
   const node = document.getElementById('bootError');
-  node.textContent = 'Boot failed: ' + err.message;
+  node.textContent = (err && (err.stack || err.message)) ? ('Boot failed: ' + (err.stack || err.message)) : ('Boot failed: ' + String(err));
   node.classList.remove('hidden');
 });

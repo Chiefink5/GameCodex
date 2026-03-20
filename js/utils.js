@@ -36,5 +36,10 @@ window.GCUtils = (() => {
     return document.getElementById(value);
   }
 
-  return { id, slug, cap, esc, gid };
+  function clone(value){
+    if (typeof structuredClone === 'function') return structuredClone(value);
+    return JSON.parse(JSON.stringify(value));
+  }
+
+  return { id, slug, cap, esc, gid, clone };
 })();

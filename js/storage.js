@@ -2,6 +2,7 @@ window.GCStorage = (() => {
   const DB_NAME = 'gameCodexDB';
   const STORE = 'appState';
   const STATE_KEY = 'state';
+  const FALLBACK_KEY = 'gameCodexStateFallback';
   const OLD_KEYS = [
     'gameCodexV11Redo',
     'gameCodexV11',
@@ -12,8 +13,27 @@ window.GCStorage = (() => {
     'gameCodexV12_1'
   ];
 
+  function readFallback(){
+    try {
+      const raw = localStorage.getItem(FALLBACK_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeFallback(state){
+    try {
+      localStorage.setItem(FALLBACK_KEY, JSON.stringify(state));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function openDB(){
     return new Promise((resolve, reject) => {
+      if (typeof indexedDB === 'undefined') return reject(new Error('IndexedDB unavailable'));
       const request = indexedDB.open(DB_NAME, 1);
 
       request.onupgradeneeded = () => {
@@ -22,7 +42,7 @@ window.GCStorage = (() => {
       };
 
       request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
+      request.onerror = () => reject(request.error || new Error('IndexedDB open failed'));
     });
   }
 
@@ -32,49 +52,51 @@ window.GCStorage = (() => {
       return await new Promise((resolve, reject) => {
         const tx = db.transaction(STORE, mode);
         const store = tx.objectStore(STORE);
-        let settled = false;
-
-        const finish = (fn, value) => {
-          if (settled) return;
-          settled = true;
-          fn(value);
-        };
-
-        tx.oncomplete = () => finish(resolve);
-        tx.onerror = () => finish(reject, tx.error);
-        tx.onabort = () => finish(reject, tx.error);
-
-        const result = work(store, tx, resolve, reject);
-        if (mode === 'readonly') finish(resolve, result);
+        const result = work(store);
+        tx.oncomplete = () => resolve(result);
+        tx.onerror = () => reject(tx.error || new Error('IndexedDB transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('IndexedDB transaction aborted'));
       });
     } finally {
       db.close();
     }
   }
 
-  function getState(){
-    return withStore('readonly', (store) => new Promise((resolve, reject) => {
-      const request = store.get(STATE_KEY);
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    }));
+  async function getState(){
+    try {
+      const result = await withStore('readonly', (store) => new Promise((resolve, reject) => {
+        const request = store.get(STATE_KEY);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error || new Error('IndexedDB read failed'));
+      }));
+      return await result;
+    } catch {
+      return readFallback();
+    }
   }
 
-  function setState(state){
-    return withStore('readwrite', (store) => {
-      store.put(state, STATE_KEY);
-    });
+  async function setState(state){
+    const fallbackOk = writeFallback(state);
+    try {
+      await withStore('readwrite', (store) => {
+        store.put(state, STATE_KEY);
+      });
+      return true;
+    } catch (err) {
+      if (fallbackOk) return false;
+      throw err;
+    }
   }
 
   async function migrateFromLocalStorage(defaultState){
     const current = await getState();
     if (current) return current;
 
-    for (const key of OLD_KEYS) {
+    for (const key of [FALLBACK_KEY].concat(OLD_KEYS)) {
       const raw = localStorage.getItem(key);
       if (!raw) continue;
       try {
-        const merged = Object.assign(structuredClone(defaultState), JSON.parse(raw));
+        const merged = Object.assign(window.GCUtils.clone(defaultState), JSON.parse(raw));
         await setState(merged);
         return merged;
       } catch {}
