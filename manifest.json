@@ -1,7 +1,7 @@
 {
   "name": "Game Codex",
   "short_name": "Codex",
-  "start_url": "./index.html?v=12-10",
+  "start_url": "./index.html?v=12-11",
   "display": "standalone",
   "background_color": "#120f18",
   "theme_color": "#120f18",

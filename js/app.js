@@ -624,15 +624,39 @@
     r.readAsText(f);
   }
 
-  function navigate(name, id=null){ state.route = { name, id }; persist(); closeSidebar(); render(); }
+  function navigate(name, id=null){ state.route = { name, id }; closeSidebar(); render(); }
   function toggleSidebar(){ el.sidebar.classList.toggle('open'); el.scrim.classList.toggle('show'); }
   function closeSidebar(){ el.sidebar.classList.remove('open'); el.scrim.classList.remove('show'); }
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
   let persistChain = Promise.resolve();
 
+  function makeSerializable(value, seen = new WeakSet()){
+    if (value == null) return value;
+    if (typeof value === 'function' || typeof value === 'symbol') return undefined;
+    if (typeof Node !== 'undefined' && value instanceof Node) return undefined;
+    if (typeof value !== 'object') return value;
+    if (seen.has(value)) return undefined;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      return value.map(item => makeSerializable(item, seen)).filter(item => item !== undefined);
+    }
+    const out = {};
+    Object.keys(value).forEach(key => {
+      const next = makeSerializable(value[key], seen);
+      if (next !== undefined) out[key] = next;
+    });
+    return out;
+  }
+
   async function persist(){
     state = normalizeState(state);
-    const snapshot = clone(state);
+    let snapshot;
+    try {
+      snapshot = makeSerializable(state);
+    } catch (err) {
+      showBootError(formatError('Save snapshot failed', err));
+      return false;
+    }
     persistChain = persistChain
       .catch(() => {})
       .then(async () => {
@@ -643,14 +667,14 @@
           throw err;
         }
       });
-    return persistChain.catch(() => {});
+    await persistChain.catch(() => {});
+    return true;
   }
 
   
   function setLastEdited(type, idValue){
     if (!idValue) return;
     state.ui.lastEdited = { type, id: idValue, ts: Date.now() };
-    persist();
   }
 
   function renderLastEditedCard(){
@@ -679,7 +703,6 @@
 function touchRecent(type, idValue){
     const tok = `${type}:${idValue}`;
     state.ui.recent = [tok, ...state.ui.recent.filter(x => x !== tok)].slice(0, 1);
-    persist();
   }
 
   function categoryById(idValue){ return state.categories.find(c => c.id === idValue); }
