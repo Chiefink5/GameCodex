@@ -152,7 +152,6 @@
     else if (r.name === 'presets') renderPresets();
     else if (r.name === 'settings') renderSettings();
     else renderHome();
-    persist();
   }
 
   function renderSidebar(){
@@ -629,13 +628,22 @@
   function toggleSidebar(){ el.sidebar.classList.toggle('open'); el.scrim.classList.toggle('show'); }
   function closeSidebar(){ el.sidebar.classList.remove('open'); el.scrim.classList.remove('show'); }
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
+  let persistChain = Promise.resolve();
+
   async function persist(){
     state = normalizeState(state);
-    try {
-      await Storage.setState(state);
-    } catch (err) {
-      showBootError(formatError('Save failed', err));
-    }
+    const snapshot = clone(state);
+    persistChain = persistChain
+      .catch(() => {})
+      .then(async () => {
+        try {
+          await Storage.setState(snapshot);
+        } catch (err) {
+          showBootError(formatError('Save failed', err));
+          throw err;
+        }
+      });
+    return persistChain.catch(() => {});
   }
 
   
@@ -682,8 +690,35 @@ function touchRecent(type, idValue){
   function serversForGame(gameId){ return state.servers.filter(s => s.gameId === gameId); }
   function modulesFor(type, ownerId){ return state.modules.filter(m => m.ownerType === type && m.ownerId === ownerId); }
 
-  function openModal(html){ el.modal.innerHTML = html; el.modal.showModal(); }
-  function closeModal(){ el.modal.close(); el.modal.innerHTML = ''; }
+  function openModal(html){
+    if (!el.modal) return;
+    el.modal.innerHTML = html;
+    try {
+      if (typeof el.modal.showModal === 'function') {
+        if (!el.modal.open) el.modal.showModal();
+      } else {
+        el.modal.setAttribute('open', 'open');
+      }
+    } catch (err) {
+      console.warn('Modal open fallback used.', err);
+      el.modal.setAttribute('open', 'open');
+    }
+  }
+
+  function closeModal(){
+    if (!el.modal) return;
+    try {
+      if (typeof el.modal.close === 'function') {
+        if (el.modal.open) el.modal.close();
+      } else {
+        el.modal.removeAttribute('open');
+      }
+    } catch (err) {
+      console.warn('Modal close fallback used.', err);
+      el.modal.removeAttribute('open');
+    }
+    el.modal.innerHTML = '';
+  }
 })().catch(err => {
   console.error(err);
   const node = document.getElementById('bootError');
