@@ -47,7 +47,7 @@
     defaultState.presets.push({ id:id(), name: Mods.TRACKER_DEFS[t].label, moduleType:t, entries:[], view:{filter:'',sort:'recent'} });
   });
 
-  let state = await Storage.migrateFromLocalStorage(structuredClone(defaultState));
+  let state = normalizeState(await Storage.migrateFromLocalStorage(structuredClone(defaultState)));
   if (!state.games.length) seedState();
 
   const el = {
@@ -189,7 +189,7 @@
       if (sort === 'title') list.sort((a,b) => a.title.localeCompare(b.title));
       if (sort === 'profiles') list.sort((a,b) => profilesForGame(b.id).length - profilesForGame(a.id).length);
       if (sort === 'servers') list.sort((a,b) => serversForGame(b.id).length - serversForGame(a.id).length);
-      gid('homeResults').innerHTML = list.map(g => safesafeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
+      gid('homeResults').innerHTML = list.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No matches</h3><div class="muted">Try a different filter.</div></div>`;
       bindDynamic();
     }
   }
@@ -197,7 +197,7 @@
   function renderCategory(id){
     const c = categoryById(id); if (!c) return navigate('home');
     const games = state.games.filter(g => g.categoryId === id && !g.archived);
-    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => safesafeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
+    el.view.innerHTML = `<section class="panel"><div class="hero"><div class="panel-title"><div class="eyebrow">Category chamber</div><h2 class="hero-title">${c.icon} ${esc(c.name)}</h2><div class="muted">Manage games in this lane.</div></div><div class="inline-actions"><button id="editCategoryBtn" class="ghost-btn">Edit</button><button id="addGameToCategoryBtn" class="gold-btn">+ Game</button></div></div></section><section class="grid">${games.map(g => safeUI.cardMarkup(g, window.GCApp)).join('') || `<div class="card"><h3>No games yet</h3></div>`}</section>`;
     gid('editCategoryBtn').onclick = () => openCategoryForm(c);
     gid('addGameToCategoryBtn').onclick = () => openGameForm(null, { categoryId:c.id });
     bindDynamic();
@@ -243,7 +243,7 @@
   }
 
   function renderArchive(){
-    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => safesafeUI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => safesafeUI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => safesafeUI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
+    el.view.innerHTML = `<section class="panel"><div class="panel-title"><div class="eyebrow">Archive vault</div><h2 class="hero-title">Archive</h2><div class="muted">Old stuff without deleting it.</div></div></section><section class="panel"><div class="panel-title"><h3>Games</h3></div><div class="list" style="margin-top:14px">${state.games.filter(g => g.archived).map(g => safeUI.archiveRowMarkup(g.title, categoryById(g.categoryId)?.name || '', 'game', g.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived games.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Profiles</h3></div><div class="list" style="margin-top:14px">${state.profiles.filter(p => p.archived).map(p => safeUI.archiveRowMarkup(p.name, gameById(p.gameId)?.title || '', 'profile', p.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived profiles.</div></div></div>`}</div></section><section class="panel"><div class="panel-title"><h3>Servers</h3></div><div class="list" style="margin-top:14px">${state.servers.filter(s => s.archived).map(s => safeUI.archiveRowMarkup(s.name, gameById(s.gameId)?.title || '', 'server', s.id)).join('') || `<div class="item-shell"><div class="item-left"><div class="muted">No archived servers.</div></div></div>`}</div></section>`;
     bindDynamic();
   }
 
@@ -412,6 +412,29 @@
     if (Mods.isTrackerType(mod.moduleType)) Mods.ensureTrackerModule(mod);
   }
 
+
+  function normalizeState(nextState){
+    const merged = Object.assign(structuredClone(defaultState), nextState || {});
+    merged.theme = Object.assign({}, defaultState.theme, merged.theme || {});
+    merged.route = Object.assign({}, defaultState.route, merged.route || {});
+    merged.ui = Object.assign({ recent: [], lastEdited: null }, merged.ui || {});
+    merged.ui.recent = Array.isArray(merged.ui.recent) ? merged.ui.recent.slice(0, 1) : [];
+    merged.categories = Array.isArray(merged.categories) ? merged.categories : [];
+    merged.games = Array.isArray(merged.games) ? merged.games : [];
+    merged.profiles = Array.isArray(merged.profiles) ? merged.profiles : [];
+    merged.servers = Array.isArray(merged.servers) ? merged.servers : [];
+    merged.modules = Array.isArray(merged.modules) ? merged.modules : [];
+    merged.presets = Array.isArray(merged.presets) ? merged.presets : [];
+
+    merged.modules.forEach(ensureModuleShape);
+    merged.presets.forEach(ensureModuleShape);
+
+    const validRoutes = new Set(['home', 'category', 'game', 'profile', 'server', 'archive', 'presets', 'settings']);
+    if (!validRoutes.has(merged.route.name)) merged.route = { name: 'home', id: null };
+
+    return merged;
+  }
+
   function openModuleForm(ownerType, ownerId, m=null){
     const typeOptions = ['notes','checklist','table','fields','recipe','chain'].concat(TAXONOMY_TYPES)
       .map(v => `<option value="${v}" ${(m?.moduleType || 'notes') === v ? 'selected' : ''}>${Mods.TRACKER_DEFS[v]?.label || cap(v)}</option>`).join('');
@@ -576,7 +599,7 @@
   function importData(e){
     const f = e.target.files[0]; if (!f) return;
     const r = new FileReader();
-    r.onload = async () => { try { state = Object.assign(structuredClone(defaultState), JSON.parse(r.result)); await persist(); render(); } catch { alert('Import failed.'); } };
+    r.onload = async () => { try { state = normalizeState(Object.assign(structuredClone(defaultState), JSON.parse(r.result))); await persist(); render(); } catch { alert('Import failed.'); } };
     r.readAsText(f);
   }
 
@@ -584,7 +607,7 @@
   function toggleSidebar(){ el.sidebar.classList.toggle('open'); el.scrim.classList.toggle('show'); }
   function closeSidebar(){ el.sidebar.classList.remove('open'); el.scrim.classList.remove('show'); }
   function applyTheme(){ document.documentElement.style.setProperty('--gold', state.theme.gold); document.documentElement.style.setProperty('--accent', state.theme.accent); }
-  async function persist(){ await Storage.setState(state); }
+  async function persist(){ state = normalizeState(state); await Storage.setState(state); }
 
   
   function setLastEdited(type, idValue){

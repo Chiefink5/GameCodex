@@ -247,14 +247,18 @@ window.GCModules = (() => {
   function trackerVisibleEntries(mod){
     const filter = (mod.view?.filter || '').trim().toLowerCase();
     const sort = mod.view?.sort || 'recent';
-    let entries = [...(mod.entries || [])];
-    if (filter) {
-      entries = entries.filter(e => Object.values(e).some(v => String(v ?? '').toLowerCase().includes(filter)));
+    const entries = [...(mod.entries || [])];
+    const firstFieldKey = TRACKER_DEFS[mod.moduleType]?.fields?.[0]?.key;
+
+    const visible = filter
+      ? entries.filter((entry) => Object.values(entry).some((value) => String(value ?? '').toLowerCase().includes(filter)))
+      : entries;
+
+    if (sort === 'a-z' && firstFieldKey) {
+      visible.sort((a, b) => String(a[firstFieldKey] || '').localeCompare(String(b[firstFieldKey] || '')));
     }
-    if (sort === 'a-z') {
-      entries.sort((a,b) => String(a[Object.keys(a)[1]] || '').localeCompare(String(b[Object.keys(b)[1]] || '')));
-    }
-    return entries;
+
+    return visible;
   }
 
   return { TRACKER_DEFS, recipeTotals, chainSummary, isTrackerType, createTrackerModule, ensureTrackerModule, trackerSummary, trackerVisibleEntries };
